@@ -66,7 +66,11 @@ def main(argv):
         print ("You need to include a SERVICENAME.")
         usage()
 
-
+    print ("You gave a service name of %s" % servicename)
+    if labelname:
+        print ("- with a label name of %s" % labelname)
+    if parentname:
+        print ("- with a parent name of %s" % parentname)
 
 
 
