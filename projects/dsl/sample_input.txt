@@ -1,0 +1,10 @@
+WEB exists in (NYC, STL, LAX)
+CORE exists in (LAX, STL)
+DRDB exists in (STL, LAX)
+CACH exists in (STL, LAX, SFO)
+ZSS exists in (NYC, STL, LAX, SFO)
+
+CORE in LAX needs DRDB in LAX
+WEB needs CACH in same colo
+
+ZSS needs no other property
