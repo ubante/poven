@@ -54,6 +54,9 @@ for property in propertyliststring.strip(',').split(','):
 
     # Find the nodecount of that property
     # XXX use a random number for now and later, use /home/y/bin/opsdb
+# $ /home/y/bin/opsdb --field property=SearchQueryAnalysisPlanning.US | wc
+# 324     324   10361
+    OPSDB = "/home/y/bin/opsdb"
     count = "%1.0f" % ( random.random()*1000 )
     print "--> ", property, count
 
