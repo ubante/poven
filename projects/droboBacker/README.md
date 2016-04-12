@@ -43,4 +43,8 @@ In the secondary destination drive:
 \other
 \other\c
 \other\d
-  
+
+
+# To do
+
+(trivial change to test mail and name config)
