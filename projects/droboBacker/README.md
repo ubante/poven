@@ -46,5 +46,3 @@ In the secondary destination drive:
 
 
 # To do
-
-(trivial change to test mail and name config)
