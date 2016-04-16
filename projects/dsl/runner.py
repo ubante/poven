@@ -13,10 +13,11 @@ Usage: runner.py -d
 
 In the first form, the -d option dumps the list of services and their relationships.
 
-In the second form, SERVICENAME should be a unique name.  You can use -d to see if SERVICENAME already exists.  If you
-want SERVICENAME to be displayed with a different label, you can use the optional -l option.  If the service is has no
-dependencies and blocks no other services, then you do not need to use the -p option.  If the service depends on
-another service, use the -p option.  If you do not know the parent service's name use the -d option to find it.
+In the second form, SERVICENAME should be a unique name.  You can use -d to see if SERVICENAME
+already exists.  If you want SERVICENAME to be displayed with a different label, you can use the
+optional -l option.  If the service is has no dependencies and blocks no other services,
+then you do not need to use the -p option.  If the service depends on another service,
+use the -p option.  If you do not know the parent service's name use the -d option to find it.
 
 In the third form, RULE will be human grammar.  The below sytax is currently acceptable:
    * PropA exists in ColoA
