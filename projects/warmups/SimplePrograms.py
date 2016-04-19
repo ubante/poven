@@ -232,7 +232,7 @@ for ticker, name, price, change, pct in stocks:
 
 # 8-queens recursion problem
 print
-BOARD_SIZE = 8
+BOARD_SIZE = 6
 
 
 def under_attack(col, queens):
@@ -243,6 +243,7 @@ def under_attack(col, queens):
         if c in (left, col, right):
             return True
     return False
+
 
 def solve(n):
     if n == 0:
@@ -256,7 +257,90 @@ def solve(n):
                 if not under_attack(i+1, solution)]
 
 for answer in solve(BOARD_SIZE):
-                    print answer
+    print answer
+
+# primes number sieve
+print
+print "Have some primes:"
+import itertools
+
+def iter_primes():
+    # an iterator of all integers between 2 and inf
+    numbers = itertools.count(2)
+
+    # genertae primes forever
+    while True:
+        # get the first number from iterator which will be a prime
+        prime = numbers.next()
+        yield prime
+
+        # sa da tay
+        numbers = itertools.ifilter(prime.__rmod__, numbers)
+
+
+found_counter = 0
+for p in iter_primes():
+    if p > 1000:
+        break
+    found_counter += 1
+    print "%4d " % p,
+    if found_counter >= 10:
+        print
+        found_counter = 0
+
+# have some XML/HTML
+print
+print
+print "Parsing baguettes"
+dinner_recipe = '''<html><body><table>
+<tr><th>amt</th><th>unit</th><th>item</th></tr>
+<tr><td>24</td><td>slices</td><td>baguette</td></tr>
+<tr><td>2+</td><td>tbsp</td><td>olive oil</td></tr>
+<tr><td>1</td><td>cup</td><td>tomatoes</td></tr>
+<tr><td>1</td><td>jar</td><td>pesto</td></tr>
+</table></body></html>'''
+
+import xml.etree.ElementTree as etree
+tree = etree.fromstring(dinner_recipe)
+pantry = set(["olive oil", "pesto"])
+for ingredient in tree.getiterator("tr"):
+    amt, unit, item = ingredient
+    if item.tag == "td" and item.text not in pantry:
+        print "%s: %s %s" % (item.text, amt.text, unit.text)
+
+# 8-queens problem revisited
+# https://en.wikipedia.org/wiki/Eight_queens_puzzle
+# 8 queens on a chessboard such that no queen threatens another queen
+print
+BOARD_SIZE = 8
+
+class BailOut(Exception):
+    pass
+
+def validate(queens):
+    left = right = col = queens[-1]
+    for r in reversed(queens[:-1]):
+        left, right = left-1, right+1
+        if r in (left, col, right):
+            raise BailOut
+
+def add_queen(queens):
+    for i in range(BOARD_SIZE):
+        test_queens = queens + [i]
+        try:
+            validate(test_queens)
+            if len(test_queens) == BOARD_SIZE:
+                return test_queens
+            else:
+                return add_queen(test_queens)
+        except BailOut:
+            pass
+    raise BailOut
+
+print "Packing a board with mutually non-threatening queens"
+queens = add_queen([])
+print queens
+print "\n".join(". "*q + "Q " + ". "*(BOARD_SIZE-q-1) for q in queens)
 
 
 
