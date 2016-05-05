@@ -20,7 +20,9 @@ From https://daringfireball.net/projects/markdown/syntax#link
 
 This is how you use markdown link references to [the google] [thegoogle].
 
-Does this work?: [thegoogle]
+Does this work?: [thegoogle] The answer is YES.
+
+Does this work?: [thegoogle]()
 
 [thegoogle]: https://www.google.com
 
