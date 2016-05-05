@@ -14,3 +14,11 @@ And the straight forward way:
 
 - https://www.google.com
 
+# Thank you, Internet
+
+From https://daringfireball.net/projects/markdown/syntax#link
+
+This is how you use markdown link references to [the google] [thegoogle].
+
+[thegoogle]: https://www.google.com
+
