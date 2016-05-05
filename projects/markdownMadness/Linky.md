@@ -2,11 +2,15 @@
 
 Put markdown goodies here.
 
-Does this link to [google]()?
+Does this link to [google]()?  Doesn't seem like it.
+
+This is the normal way to link to [google](https://www.google.com).
 
 
 [google]: [https://www.google.com]()
 
+
+And the straight forward way:
 
 - https://www.google.com
 
