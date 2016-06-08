@@ -26,3 +26,8 @@ Does this work?: [thegoogle]()
 
 [thegoogle]: https://www.google.com
 
+# Newlines
+
+What about https://www.
+google.com
+
