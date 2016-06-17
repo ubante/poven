@@ -23,6 +23,7 @@ will have a deck of 45 cards.
 If I commandeer one of the players, can I influence the other players to choose worse decks?
 """
 
+
 class Card:
     'Color and value'
 
@@ -35,40 +36,73 @@ class Card:
     def get_description(self):
         return "%s%d" % (self.color, self.value)
 
+
 class CardSet:
-    'Can be used for Deck or Hand'
+    """
+    Can be used for Deck or Hand
+    """
 
     def __init__(self, set_size, colors, max_value):
         self.cards = []
         for i in range(1, set_size):
             self.cards.append(Card(colors, max_value))
 
+    def get_list(self):
+        return self.cards
 
+    def print_list(self):
+        print "Card set:",
+        for card in self.cards:
+            print "%3s" % card.get_description(),
+        print ""
 
 class Player:
-    'I Play'
+    """
+    I play
+    """
 
     def __init__(self, initial_deck_size, card_colors, card_max_value):
-        deck = CardSet(initial_deck_size, card_colors, card_max_value)
-        hand = CardSet(0, card_colors, card_max_value)
+        self.deck = CardSet(initial_deck_size, card_colors, card_max_value)
+        self.hand = CardSet(0, card_colors, card_max_value)
 
-'''
-Let's do it
-'''
+    def print_deck(self):
+        print "Deck:",
+        for card in self.deck.get_list():
+            print "%3s" % card.get_description(),
+        print ""
+
+    def print_hand(self):
+        print "Hand:",
+        for card in self.hand.get_list():
+            print "%3s" % card.get_description(),
+        print ""
+
+class Table:
+    pass
+
 def main(argv):
+    """
+    Let's do it
+    """
     player_count = 8
     round_count = 1
     card_max_value = 40
     deck_size = 15
     card_colors = 'RBGYP'
 
+    '''
+    debug prints, yeah
+    '''
     aCard = Card(card_colors, card_max_value)
     print aCard.get_description()
 
+    aDeck = CardSet(deck_size, card_colors, card_max_value)
+    aDeck.print_list()
+
+    print "\nPlayer stuff:"
     aPlayer = Player(deck_size, card_colors, card_max_value)
-
-
-
+    aPlayer.print_deck()
+    aPlayer.print_hand()
 
 if __name__ == "__main__":
     main(sys.argv[1:])
