@@ -47,8 +47,12 @@ class CardSet:
 
     def __init__(self, set_size, colors, max_value):
         self.cards = []
-        for i in range(1, set_size):
+        for i in range(0, set_size):
             self.cards.append(Card(colors, max_value))
+        self.color_strength = {}
+        for color in colors:
+            self.color_strength[color] = 0
+        self.power_history = []
 
     def get_list(self):
         return self.cards
@@ -65,10 +69,42 @@ class CardSet:
     def append(self, card):
         self.cards.append(card)
 
+    def get_power(self):
+
+        # First find the strongest color
+        color_power = {}
+        for color in self.color_strength.keys():
+            color_power[color] = 0
+
+        strongest_color = None
+        for card in self.cards:
+            color_power[card.color] += card.value
+            if not strongest_color:
+                strongest_color = card.color
+                continue
+            if color_power[card.color] > color_power[strongest_color]:
+                strongest_color = card.color
+
+        # Then score the CardSet
+        cardset_power = 0
+        for card in self.cards:
+            if card.color == strongest_color:
+                cardset_power += 4 * card.value
+            else:
+                cardset_power += card.value
+
+        return cardset_power
+
+    def record_power(self):
+        power = self.get_power()
+        self.power_history.append(power)
+
 
 class Player:
     """
     I play
+
+    TODO: maybe Player should track its own name instead of Table doing it???
     """
 
     def __init__(self, initial_deck_size, card_colors, card_max_value):
@@ -80,6 +116,13 @@ class Player:
         for color in card_colors:
             self.color_strength[color] = 0
         self.strongest_color = card_colors[0]  # placeholder
+
+    def get_deck(self):
+        return self.deck
+
+    def set_deck(self, deck):
+        self.deck = deck
+
 
     def get_deck_string(self):
         return_string = "Deck: "
@@ -111,7 +154,7 @@ class Player:
             if card.value + self.color_strength[card.color] > strongest_color_value:
                 pick_candidate = card
                 strongest_color_value = card.value + self.color_strength[card.color]
-                print "Found a good card: %s" % card.get_description()
+                # print "Found a good card: %s" % card.get_description()
 
         """
         It's possible that we do not find a card that increases our strongest color.  In this case,
@@ -127,15 +170,21 @@ class Player:
             for card in self.deck.get_list():
                 if not best_offcolor_card:
                     best_offcolor_card = card
-                    print "Found an initial off color card: %s" % card.get_description()
+                    # print "Found an initial off color card: %s" % card.get_description()
                     continue
                 if card.value > best_offcolor_card.value:
                     best_offcolor_card = card
-                    print "Found a better off color card: %s" % card.get_description()
+                    # print "Found a better off color card: %s" % card.get_description()
             self.deck.remove(best_offcolor_card)
             self.hand.append(best_offcolor_card)
             self.color_strength[best_offcolor_card.color] += best_offcolor_card.value
 
+    def score_hand(self):
+        self.hand.record_power()
+
+    def print_power_csv_line(self):
+        # print ", ".join(self.hand.power_history)
+        print str(self.hand.power_history).strip('[]')
 
 class DoubleList(object):
     """
@@ -215,38 +264,38 @@ class Table:
         # print "Here's the table of %d players:" % self.player_count
         for i in range(0, self.player_count):
             print "PLAYER #%d  ><  %s  ><  %s" % (i, self.players[i].get_deck_string(),
-                                         self.players[i].get_hand_string())
+                                                  self.players[i].get_hand_string())
 
-    def do_something(self):
-        print "Here's Player #1 before a pick:"
-        self.players[0].print_deck()
-        self.players[0].print_hand()
+    def display_with_power(self):
+        # print "Here's the table of %d players:" % self.player_count
+        for i in range(0, self.player_count):
+            print "PLAYER #%d  ><  %s  ><  %s (%d)" % (i, self.players[i].get_deck_string(),
+                                                       self.players[i].get_hand_string(),
+                                                       self.players[i].hand.get_power())
 
-        counter = 0
-        while self.players[0].deck:
-            self.players[0].pick()
-            counter += 1
-            print "after pick %d ><  %s  ><  %s" % (counter,
-                                                   self.players[0].get_deck_string(),
-                                                   self.players[0].get_hand_string())
-        #
-        # print "Here's Player #1 after a pick:"
-        # self.players[0].pick()
-        # self.players[0].print_deck()
-        # self.players[0].print_hand()
-        #
-        # self.players[0].pick()
-        # print "after pick 2 >< %s  ><  %s" % (self.players[0].get_deck_string(),
-        #                                       self.players[0].get_hand_string())
-        # self.players[0].pick()
-        # print "after pick 2 >< %s  ><  %s" % (self.players[0].get_deck_string(),
-        #                                       self.players[0].get_hand_string())
-        # self.players[0].pick()
-        # print "after pick 2 >< %s  ><  %s" % (self.players[0].get_deck_string(),
-        #                                       self.players[0].get_hand_string())
+    def do_turn(self):
 
+        for turn in range (1, self.deck_size+1):
 
+            for player in self.players:
+                player.pick()
+                player.score_hand()
+            print "\nAfter %d turn of picks:" % turn
+            self.display_with_power()
+            # self.display()
 
+            # Pass the deck
+            placeholder_deck = self.players[0].get_deck()
+            for i in range (0, self.player_count-1):
+                self.players[i].set_deck(self.players[i+1].get_deck())
+            self.players[self.player_count-1].set_deck(placeholder_deck)
+
+    def print_power_csv(self):
+        print "\nHere are the power histories for graphing:"
+        for i in range(0, self.player_count):
+            print "Player %d, " % i,
+            player = self.players[i]
+            player.print_power_csv_line()
 
 def main(argv):
     """
@@ -262,10 +311,10 @@ def main(argv):
     aTable = Table(player_count, round_count, card_max_value, deck_size, card_colors)
     aTable.initialize()
     aTable.display()
+    print
 
-    print "\nAfter one turn:"
-    aTable.do_something()
-
+    aTable.do_turn()
+    aTable.print_power_csv()
 
 if __name__ == "__main__":
     main(sys.argv[1:])
