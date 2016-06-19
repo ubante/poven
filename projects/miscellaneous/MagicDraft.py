@@ -8,8 +8,9 @@ There are eight players.  Each player starts with a 15 card deck.  The "cards" h
 red, blue, green, yellow, purple) and an integer from [1:40].  The cards can repeat in a deck and
 the cards are random.  Each player also has a hand.  At the start of the draft, the player looks at
 his deck and chooses the "best" card to put in his hand and passes the rest of the deck to the
-player to the right.  In the second pick of the draft, the player accepts the deck from the
-player to his left and evaluates if he should choose the best card of the same color of his hand or
+player to the left.  In the second turn of the draft, the player accepts the deck from the
+player to his right and evaluates if he should choose the best card of the same color of his
+hand or
 abandon the color and choose another color card to put into his hand.  He then passes the deck.
 This continues until the there are no more cards in the deck.
 
@@ -25,7 +26,9 @@ If I commandeer one of the players, can I influence the other players to choose 
 
 
 class Card:
-    'Color and value'
+    """
+    Color and value
+    """
 
     def __init__(self, color_letters, max_value):
         self.color_letters = color_letters
@@ -56,6 +59,12 @@ class CardSet:
             print "%3s" % card.get_description(),
         print ""
 
+    def remove(self, card):
+        self.cards.remove(card)
+
+    def append(self, card):
+        self.cards.append(card)
+
 
 class Player:
     """
@@ -65,18 +74,67 @@ class Player:
     def __init__(self, initial_deck_size, card_colors, card_max_value):
         self.deck = CardSet(initial_deck_size, card_colors, card_max_value)
         self.hand = CardSet(0, card_colors, card_max_value)
+        # This could be moved to CardSet but since it only matters for hand, I'll leave it in
+        # Player.
+        self.color_strength = {}
+        for color in card_colors:
+            self.color_strength[color] = 0
+        self.strongest_color = card_colors[0]  # placeholder
+
+    def get_deck_string(self):
+        return_string = "Deck: "
+        for card in self.deck.get_list():
+            return_string += "%4s" % card.get_description()
+        return return_string
 
     def print_deck(self):
-        print "Deck:",
-        for card in self.deck.get_list():
-            print "%3s" % card.get_description(),
-        print ""
+        print self.get_deck_string()
+
+    def get_hand_string(self):
+        return_string = "Hand: "
+        for card in self.hand.get_list():
+            return_string += "%4s" % card.get_description()
+        return return_string
 
     def print_hand(self):
-        print "Hand:",
-        for card in self.hand.get_list():
-            print "%3s" % card.get_description(),
-        print ""
+        print self.get_hand_string()
+
+    def pick(self):
+        """
+        We're looking for the card that enhances the color_strength of the hand the most.
+        """
+
+        strongest_color_value = self.color_strength[self.strongest_color]
+        pick_candidate = None
+
+        for card in self.deck.get_list():
+            if card.value + self.color_strength[card.color] > strongest_color_value:
+                pick_candidate = card
+                strongest_color_value = card.value + self.color_strength[card.color]
+                print "Found a good card: %s" % card.get_description()
+
+        """
+        It's possible that we do not find a card that increases our strongest color.  In this case,
+        choose a card that has the greatest value.
+        """
+        if pick_candidate:
+            self.deck.remove(pick_candidate)
+            self.hand.append(pick_candidate)
+            self.strongest_color = pick_candidate.color
+            self.color_strength[pick_candidate.color] += pick_candidate.value
+        else:
+            best_offcolor_card = None
+            for card in self.deck.get_list():
+                if not best_offcolor_card:
+                    best_offcolor_card = card
+                    print "Found an initial off color card: %s" % card.get_description()
+                    continue
+                if card.value > best_offcolor_card.value:
+                    best_offcolor_card = card
+                    print "Found a better off color card: %s" % card.get_description()
+            self.deck.remove(best_offcolor_card)
+            self.hand.append(best_offcolor_card)
+            self.color_strength[best_offcolor_card.color] += best_offcolor_card.value
 
 
 class DoubleList(object):
@@ -154,11 +212,39 @@ class Table:
             self.players.append(Player(self.deck_size, self.card_colors, self.card_max_value))
 
     def display(self):
-        print "Here's the table of %d players:" % self.player_count
+        # print "Here's the table of %d players:" % self.player_count
         for i in range(0, self.player_count):
-            print "Player #%d:" % i
-            self.players[i].print_deck()
-            self.players[i].print_hand()
+            print "PLAYER #%d  ><  %s  ><  %s" % (i, self.players[i].get_deck_string(),
+                                         self.players[i].get_hand_string())
+
+    def do_something(self):
+        print "Here's Player #1 before a pick:"
+        self.players[0].print_deck()
+        self.players[0].print_hand()
+
+        counter = 0
+        while self.players[0].deck:
+            self.players[0].pick()
+            counter += 1
+            print "after pick %d ><  %s  ><  %s" % (counter,
+                                                   self.players[0].get_deck_string(),
+                                                   self.players[0].get_hand_string())
+        #
+        # print "Here's Player #1 after a pick:"
+        # self.players[0].pick()
+        # self.players[0].print_deck()
+        # self.players[0].print_hand()
+        #
+        # self.players[0].pick()
+        # print "after pick 2 >< %s  ><  %s" % (self.players[0].get_deck_string(),
+        #                                       self.players[0].get_hand_string())
+        # self.players[0].pick()
+        # print "after pick 2 >< %s  ><  %s" % (self.players[0].get_deck_string(),
+        #                                       self.players[0].get_hand_string())
+        # self.players[0].pick()
+        # print "after pick 2 >< %s  ><  %s" % (self.players[0].get_deck_string(),
+        #                                       self.players[0].get_hand_string())
+
 
 
 
@@ -172,25 +258,32 @@ def main(argv):
     deck_size = 15
     card_colors = 'RBGYP'
 
-    '''
-    debug prints, yeah
-    '''
-    aCard = Card(card_colors, card_max_value)
-    print aCard.get_description()
-
-    aDeck = CardSet(deck_size, card_colors, card_max_value)
-    aDeck.print_list()
-
-    print "\nPlayer stuff:"
-    aPlayer = Player(deck_size, card_colors, card_max_value)
-    aPlayer.print_deck()
-    aPlayer.print_hand()
-
-    print
+    print "\nHere's the start:"
     aTable = Table(player_count, round_count, card_max_value, deck_size, card_colors)
     aTable.initialize()
     aTable.display()
 
+    print "\nAfter one turn:"
+    aTable.do_something()
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
