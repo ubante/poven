@@ -1,8 +1,10 @@
 # Introduction
+In Magic the Gathering, when should you change your main color?  How do you signal?
 
-
+I dunno.  Let's make python classes.
 
 # Graph
+![Alt text](power_histories.PNG)
 
 # Output
 
