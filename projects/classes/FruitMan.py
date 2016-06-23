@@ -9,3 +9,6 @@ apple = Apple()
 apple.printState()
 
 papple = Papple()
+papple.print_status()
+papple.increment_count()
+papple.print_status()

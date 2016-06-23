@@ -1,3 +1,5 @@
+from projects.classes.Fruit import Fruit
+
 class Apple:
     count = 0
 
@@ -16,7 +18,12 @@ class Apple:
 
         print "You have %s apples" % self.count
 
-class Papple:
+
+class Papple(Fruit):
 
     def __init__(self):
+        Fruit.__init__(self, "papple")
         print "A papple isa apple"
+
+
+
