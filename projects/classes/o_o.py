@@ -21,6 +21,24 @@ class ChildB(Base):
         self.long_dir = "/x/y/" + type(self).__name__
 
 
+class Results():
+    pass
+
+
+# can we add fields to a class?
+class Map():
+    def __init__(self):
+        self.results = Results()
+
+    def set_location(self):
+        self.results.location = "SF"
+        print "in set_location:", self.results.location
+
+    def get_location(self):
+        return self.results.location # ignore the Unresolved attribute blah blah blah
+        # return "asdf"
+
+
 directory = "c"
 mChild = ChildA(directory)
 print "Low: ", mChild.lowest_score
@@ -38,3 +56,11 @@ print "High:", qChild.highest_score
 print "Classname: ", qChild.classname
 print "RepoName:  ", qChild.reponame
 print "LongName:  ", qChild.long_dir
+
+print
+aMap = Map()
+aMap.set_location()
+print "Location:  ", aMap.get_location()
+
+
+
