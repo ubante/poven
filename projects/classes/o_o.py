@@ -62,5 +62,14 @@ aMap = Map()
 aMap.set_location()
 print "Location:  ", aMap.get_location()
 
+import socket
+print "Have some DNS:"
+for name in ["google.com", "asdfafes.asdfsdf.com", "afsraw3rwer.dfseoiuop.io", "yahoo.com"]:
+    try:
+        print name + ": " + socket.gethostbyname(name)
+    except socket.gaierror:
+        print "Could not resolve", name
 
+# print "google.com:", socket.gethostbyname('google.com')
+# print "asdfasd.afjpiweo.com:", socket.gethostbyname("asdfasd.afjpiweo.com")
 
