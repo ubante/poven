@@ -42,7 +42,7 @@ reversedThings = {}
 for thing in listThings:
     # print thing.x
     if thing.y in reversedThings:
-        reversedThings[thing.y].append(thing.x)
+        reversedThings[thing.y].extend(thing.x)
     else:
         reversedThings[thing.y] = [thing.x]
 

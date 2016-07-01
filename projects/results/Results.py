@@ -15,6 +15,7 @@ class Results:
 
     def _add(self, message, log_level=1):
         self.lines.append((log_level, message))
+        # print "adding::", log_level, message
 
     def add(self, some_string):
         self._add(some_string, log_level=1)
@@ -27,6 +28,7 @@ class Results:
 
     def add3(self, some_string):
         self._add(some_string, log_level=3)
+        print some_string
 
     def _display(self, log_level=1):
         for tuple in self.lines:
@@ -46,8 +48,13 @@ class Results:
     def display3(self):
         self._display(3)
 
-    def append(self, some_results):
-        self.lines.append(some_results.lines)
+    def extend(self, some_results):
+        self.lines.extend(some_results.lines)
 
+    def get_size(self):
+        return len(self.lines)
 
-
+    def dump(self):
+        print "\nHere's the results dump:"
+        for line in self.lines:
+            print line
