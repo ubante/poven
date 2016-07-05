@@ -71,7 +71,7 @@ class Flock:
 
 
 class Bird:
-    cache = Cache()
+    cache = Cache(ttl=5)
 
     def __init__(self, name):
         self.travel_distance = None
@@ -82,14 +82,23 @@ class Bird:
             return "{} has travelled {} kilomiles.".format(self.name, self.travel_distance)
         return self.name + " is a bird."
 
-    # @staticmethod
     def compute_travel_distance(self):
         """This represents something we don't want to compute often."""
-        distance = "{0:.2f}".format(time.time() - 1467683200)
-        Bird.cache.set_single_value(distance)
+
+        if Bird.cache.is_expired():
+            """This is the thing we don't want to do."""
+            distance = "{0:.2f}".format(time.time() - 1467698500)
+            self.travel_distance = distance
+            Bird.cache.set_single_value(distance)
+        else:
+            self.travel_distance = Bird.cache.single_value
 
     def get_flock_travel_distance(self):
         self.travel_distance = Flock.compute_flock_travel_distance()
+
+    def stat_cache(self):
+        print self.name + ": ",
+        print Bird.cache
 
 
 class Numbre:

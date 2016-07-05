@@ -15,20 +15,28 @@ def main():
     b.compute_travel_distance()
     print b.__str__()
     # b.get_flock_travel_distance()
-    b.compute_travel_distance()
-    print b.__str__()
+    # b.compute_travel_distance()
+    # print b.__str__()
+    # b.stat_cache()
 
     print
+    sleepy_time = 1
+    time.sleep(sleepy_time)
     k = Bird("k")
     print k.__str__()
+    k.compute_travel_distance()
+    # k.stat_cache()
 
-    sleepy_time = 1
     for interval in range(0, 13):
         # k.get_flock_travel_distance()
+        time.sleep(sleepy_time)
         k.compute_travel_distance()
         print k.__str__()
-        time.sleep(sleepy_time)
-
+    # k.stat_cache()
+    # b.stat_cache()
+    print
+    b.compute_travel_distance()
+    print b.__str__()
     sys.exit()
 
     print "\n\nPRIME TIME\n"
