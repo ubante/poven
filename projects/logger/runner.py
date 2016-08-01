@@ -2,11 +2,11 @@ import logging
 import nutslib
 
 """
-DEBUG
-INFO
-WARNING
-ERROR
-CRITICAL
+(10) DEBUG
+(20) INFO
+(30) WARNING
+(40) ERROR
+(50) CRITICAL
 """
 
 logging.basicConfig(filename='slammo.log', level=logging.INFO,
