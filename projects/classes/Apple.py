@@ -1,4 +1,6 @@
+import unittest
 from projects.classes.Fruit import Fruit
+
 
 class Apple:
     count = 0
@@ -8,7 +10,7 @@ class Apple:
         self.incrementCount()
 
     def incrementCount(self):
-        self.count = self.count + 1
+        self.count += 1
 
     def printState(self):
 
@@ -26,4 +28,14 @@ class Papple(Fruit):
         print "A papple isa apple"
 
 
+class TestApple(unittest.TestCase):
+    def test_counts(self):
+        a = Apple()
+        self.assertEqual(a.count, 1)
+        a.incrementCount()
+        self.assertEqual(a.count, 2)
+
+
+if __name__ == '__main__':
+    unittest.main()
 
