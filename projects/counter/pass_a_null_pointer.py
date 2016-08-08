@@ -23,11 +23,6 @@ class Thing:
         if 3 == len(words):
             print "3: ", words
             self._increment1(words)
-
-            # try:
-            #     self.counter_dict["/"][words[1]][words[2]] += 1
-            # except TypeError:
-            #     self.counter_dict["/"][words[1]][words[2]] = 1
         if 4 == len(words):
             print "4: ", words
             try:
@@ -52,6 +47,11 @@ class Thing:
         print self.to_string()
 
         self.increment1(["a", "b", "host1"])
+        self.increment1(["a", "b", "host1"])
+
+        self.increment1(["a", "b", "host1"])
+        self.increment1(["a", "b", "host1"])
+
         print "\nhost1:"
         print self.to_string()
 
