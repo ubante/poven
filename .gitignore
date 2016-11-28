@@ -2,3 +2,9 @@
 projects/*/Junk*
 projects/*/xxx*
 projects/dsl/translate.py
+
+# Skip database changes
+*db
+
+# Python deplorables
+*.pyc

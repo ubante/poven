@@ -60,6 +60,7 @@ def create_sample_table():
         cursor.execute("INSERT INTO Cars VALUES(5,'Bentley',350000)")
         cursor.execute("INSERT INTO Cars VALUES(6,'Citroen',21000)")
         cursor.execute("INSERT INTO Cars VALUES(7,'Hummer',41400)")
+        cursor.execute("INSERT INTO Cars VALUES(7,'Hummer',41400)")
         cursor.execute("INSERT INTO Cars VALUES(8,'Volkswagen',21600)")
 
 
