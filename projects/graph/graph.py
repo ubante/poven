@@ -4,6 +4,8 @@ from __future__ import print_function
 
 import sys
 
+from pydotting import PyGraph
+
 """
 This is a bidirectional graph of nodes.
 
@@ -149,6 +151,12 @@ def main():
     g.add_child_to("grandchild1a", "greatgrandchild1aB")
     g.add_child_to("child1", "grandchild1c")
     g.display()
+
+    pg = PyGraph()
+    pg.load(g)
+    outfile = pg.write_svg()
+    print(outfile)
+
     sys.exit()
 
 if __name__ == "__main__":
