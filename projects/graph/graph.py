@@ -82,6 +82,9 @@ class Node(object):
         for neighbor in self.get_other_neighbors(caller):
             return neighbor.search(data, self)
 
+    def get_pairs(self, caller=None):
+        pass
+
 
 class Graph(object):
 
@@ -111,6 +114,20 @@ class Graph(object):
 
     def display(self):
         self.origin_node.display_radially()
+
+    def get_edges(self, node=None):
+        if not node:
+            node = self.origin_node
+
+        edges = []
+        for neighbor in node.get_other_neighbors(node):
+            edges.append((node.data, neighbor.data))
+
+            for nn in neighbor.get_other_neighbors(node):
+                edges.append((neighbor.data, nn.data))
+
+        return edges
+        # return [("a", "b"), ("c", "d")]
 
 
 def print_banner(message):
@@ -152,6 +169,7 @@ def main():
     g.add_child_to("child1", "grandchild1c")
     g.display()
 
+    print_banner("make the dot graph")
     pg = PyGraph()
     pg.load(g)
     outfile = pg.write_svg()

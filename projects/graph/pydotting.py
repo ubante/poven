@@ -24,10 +24,14 @@ class PyGraph(object):
 
         return "file://{}".format(os.path.abspath(self.destination_svg_filename))
 
-    def load(self, graphname):
-        origin = graphname.origin_node
-        [self.add_edge(origin.data, n.data) for n in origin.get_neighbors()]
+    def load(self, graph):
+        # origin = graphname.origin_node
+        # [self.add_edge(origin.data, n.data) for n in origin.get_neighbors()]
 
+        # for edge in graphname.get_edges():
+        #     self.add_edge(edge)
+
+        [self.add_edge(e[0], e[1]) for e in graph.get_edges()]
 
 
 
