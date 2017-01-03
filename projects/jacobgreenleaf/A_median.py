@@ -12,6 +12,7 @@ import numpy
 
 from heapq import heappush, heappop
 
+
 def get_random_number():
     return random.random()*2000-1000
 
@@ -51,7 +52,8 @@ class Median(object):
     def __init__(self):
         self.median = None
         self.element_counter = 0
-
+        self.min_heap = []
+        self.max_heap = []
 
     def print_median(self):
         if self.median:
@@ -59,8 +61,37 @@ class Median(object):
         else:
             print("We have no data yet.")
 
+    def initialize(self, input_int):
+        """
+        Just to break this out of add().
+        :param input_int:
+        :return:
+        """
+        # If this is the first input, then just put it somewhere.
+        if self.element_counter == 1:
+            # self.min_heap.append(input_int)
+
+            return
+
+        # If the second input is greater than the first input, easy.
+        if input_int >= self.min_heap[0]:
+            self.max_heap.append(input_int)
+        else:
+            # Otherwise, still easy.
+            self.max_heap.append(self.min_heap[0])
+            self.min_heap[0] = input_int
+
+        self.median = float(self.min_heap[0] + self.max_heap[0]) / 2
+
     def add(self, input_int):
+        print("({:2}) ".format(input_int), end="")
         self.element_counter += 1
+        if self.element_counter <=2:
+            self.initialize(input_int)
+
+        # Once we get past the first two inputs, we have to compare
+        # this input with the roots of the two trees.
+        # if input < self.min_heap[0]:
 
 
 def try2():
@@ -68,7 +99,7 @@ def try2():
 
     for i in range(1, 11):
         print("{:3}: ".format(i), end="")
-        median.add(get_random_int(0,50))
+        median.add(get_random_int(0, 50))
         median.print_median()
 
 
@@ -91,6 +122,6 @@ def so_sample():
 
 if __name__ == "__main__":
     # main()
-    try2()
+    # try2()
     print("")
     so_sample()

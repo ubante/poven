@@ -8,3 +8,6 @@ projects/dsl/translate.py
 
 # Python deplorables
 *.pyc
+
+# Idea stuff
+.idea
