@@ -1,0 +1,16 @@
+<body start="20.04.2014 10:02:60">
+    <pricelist>
+        <item>
+          <name>LEO - red pen</name>
+          <price>31,4</price>
+          <price_snc>0</price_snc>
+          <price_ao>0</price_ao>
+          <price_qty>
+            <item qty="150" price="28.20" />
+            <item qty="750" price="26.80" />
+            <item qty="1500" price="25.60" />
+           </price_qty>
+        <stock>50</stock>
+        </item>
+    </pricelist>
+</body>

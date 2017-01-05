@@ -1,0 +1,27 @@
+<domain this='that' id="2">
+    <name>some_name</name>
+    <id>some_id</id>
+    <resource>
+        <mas>mucho</mas>
+        <extra />
+    </resource>
+    <things>
+        <monster>
+            <source file="/a/b/c/monster-old" />
+        </monster>
+        <cats>
+            <source file="/x/y/c/cat-old" />
+        </cats>
+    </things>
+    <timeperd>
+        <timeinfo>
+            <rngdates>
+                <begdate>%begdate%</begdate>
+                <begtime>unknown</begtime>
+                <enddate>%enddate%</enddate>
+                <endtime>unknown</endtime>
+            </rngdates>
+        </timeinfo>
+        <current>ground condition</current>
+    </timeperd>
+</domain>
