@@ -20,13 +20,9 @@ def set_logger(verbose_level):
     else:
         logging_level = logging.ERROR
 
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging_level)
-    stdout_sh = logging.StreamHandler(sys.stdout)
-    stdout_sh.setLevel(logging.DEBUG)
-    stdout_formatter = logging.Formatter('%(levelname)s - %(message)s')
-    stdout_sh.setFormatter(stdout_formatter)
-    root_logger.addHandler(stdout_sh)
+    logging.basicConfig(level=logging_level,
+                        stream=sys.stdout,
+                        format='%(levelname)s - %(message)s')
 
 
 def main():
