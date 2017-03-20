@@ -31,12 +31,14 @@ from __future__ import print_function
 
 import argparse
 import logging
+import matplotlib.pyplot as plt
 import sys
 
 from math import acos
 from math import pi
 from math import sqrt
 from random import random
+from time import sleep
 
 
 class Point(object):
@@ -151,6 +153,36 @@ class OuterSquare(object):
 
         self.points = [a, b, c, d]
 
+    def draw_points(self, blue_points, axis_ctr):
+        """
+        One day, use the axis_ctr as a title or label to show progress.
+
+        :param blue_points:
+        :param axis_ctr:
+        :return:
+        """
+        x_axis = []
+        y_axis = []
+        for point in self.points:
+            x_axis.append(point.x)
+            y_axis.append(point.y)
+
+        x_axis.append(self.points[0].x)
+        y_axis.append(self.points[0].y)
+
+        # plt.clf()
+        # axis = plt.figure().gca()
+        plt.plot(x_axis, y_axis, 'ro-')
+        plt.plot([blue_points[0].x, blue_points[1].x], [blue_points[0].y, blue_points[1].y])
+        # plt.draw()
+        # plt.show(block=False)
+
+        # I would like for the figure window to open.  And every time we
+        # find a convex quadrilateral, we clear the figure and draw the
+        # new quadrilateral.  But alas, I have to settle with this
+        # blocking call.
+        plt.show()
+
     def test_convexity(self):
         a = self.points[0]
         b = self.points[1]
@@ -158,20 +190,24 @@ class OuterSquare(object):
         d = self.points[3]
         total_angles = 0
 
+        largest_angle = 0
+        largest_angle_points = []
         for tup in [(a, b, c), (b, c, d), (c, d, a), (d, a, b)]:
             angle = tup[1].get_angle(tup[0], tup[2])
-            # print("{} {} {} gives us an angle of {}".format(tup[0], tup[1], tup[2], angle))
             total_angles += angle
 
-        # print("TA: {:18f}".format(total_angles))
+            if angle > largest_angle:
+                largest_angle_points = [tup[0], tup[2]]
+                largest_angle = angle
 
-        # if total_angles != 360.0:
-        # if -0.001 < (total_angles - 360.0) < 0.0001:
         if abs((total_angles - 360.0)) > 0.001:
-        # if 0.001 < (total_angles - 360.0) or (total_angles - 360.0) < -0.001:
-            print("CONVEX^^: 360 - {:9f} = {}".format(total_angles, 360-total_angles))
-            # print("{}  ^^: {:18f}".format(self.convexity, (total_angles - 360.0)))
+            print("{}: 360 - {:9f} = {}".format(self.to_string(), total_angles, 360-total_angles))
+            print("Biggest angle ({}) endpoints: {} & {}"
+                  .format(largest_angle, largest_angle_points[0], largest_angle_points[1]))
+            # self.draw_points(largest_angle_points)
             self.convexity = True
+
+        return largest_angle_points
 
     def to_string(self):
         s = ""
@@ -209,42 +245,45 @@ def main():
     logging.debug("Here we go.")
 
     square_size = 100
-    # random_attempts = square_size * square_size
-    random_attempts = 1000000
+    random_attempts = 100
 
     convexity_ctr = 0
     os = OuterSquare(square_size)
+    plt.plot([-50, 50], [50, 50])
+    plt.show(block=False)
+    plt.clf()
+
     for i in range(1, random_attempts+1):
         os.reset()
         os.populate_points()
         # os.pprint()
-        os.test_convexity()
+        largest_angle_points = os.test_convexity()
 
         if os.convexity:
-            # print("The children cannot walk in a straight line.")
             convexity_ctr += 1
-            # print("convex counter: {}".format(convexity_ctr))
+            os.draw_points(largest_angle_points, convexity_ctr)
+
+    plt.show()
 
     print("\nOf the {} random samples, {} samples have a convex quadrilateral, or {}%."
           .format(random_attempts, convexity_ctr, 100*convexity_ctr/random_attempts))
 
 if __name__ == "__main__":
     main()
+
+    # fig = plt.figure()
+    # ax = fig.gca()
+    # fig.show()
     #
-    # os = OuterSquare(100)
-    # a = Point(1, 99)
-    # b = Point(-99, 1)
-    # c = Point(-1, -99)
-    # d = Point(99, -1)
-    # os.points = [a, b, c, d]
-    # os.pprint()
-    # print()
-    # os.test_convexity()
-    # print(os.convexity)
+    # for i in range(10):
+    #     ax.plot(i, i, 'ko')
+    #     fig.canvas.draw()
+    #     raw_input('pause : press any key ...')
+    # fig.close()
+
     #
-    # a = Point(20, 20)
-    # b = Point(0, 0)
-    # c = Point(-20, 20)
-    # print("-" * 20)
-    # print(    b.get_angle(a, c))
-    # print("-" * 20)
+    # plt.plot([1,2.5,3,4])
+    # plt.plot([1, 2, 3, 4], [1, 4, 9, 16])
+    # plt.plot([1, 2, 3, 2, 1], [1, 2, 1, 0, 1])
+    # plt.ylabel('asdf')
+    # plt.show()
