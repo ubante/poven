@@ -23,7 +23,11 @@ leaving the boundaries? (In other words, what is the probability that
 the quadrilateral is convex?)
 
 Results:
-Of the 1000000 random samples, 91111 samples have a convex quadrilateral, or 9%.
+Of the 1000000 random samples, 91111 samples have a convex
+quadrilateral, or 9%.
+
+Which means the probability that the children can travel without leaving
+the quadrilateral is 91%.
 
 """
 
