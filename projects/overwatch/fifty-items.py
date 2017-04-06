@@ -15,6 +15,26 @@ from collections import defaultdict
 from random import randint
 
 
+class Character(object):
+    def __init__(self):
+        self.name = None
+        self.items = []
+        self.achievement_level = None
+        self.gold_to_hit_ach = None
+
+        # Should the Character object know what items it can have?
+
+
+    def add_item(self, item):
+        self.items.append(item)
+
+    def get_item_count(self):
+        return len(self.items)
+
+    def has(self, item):
+        pass
+
+
 class Item(object):
     def __init__(self):
         self.char_num = None
@@ -105,6 +125,7 @@ class Counter(object):
         self.unique_count = 0
         self.max_count = 0
         self.repeat_count = 0
+        self.gold_coins = 0
         self.char_list = range(1, self.char_num+1)
         self.giant_hash = defaultdict(list)
         logging.debug("Initialized counter with {} chars.".format(self.char_num))
@@ -112,6 +133,7 @@ class Counter(object):
     def achieved(self):
         max_by_char = 0
         max_char = None
+        achievement_level = 50
 
         for char in self.giant_hash:
             char_items_len = len(self.giant_hash[char])
@@ -122,10 +144,18 @@ class Counter(object):
         logging.debug("Unique count at {}; max length at {}."
                       .format(self.unique_count, max_by_char))
 
-        if max_by_char >= 50:
+        if max_by_char >= achievement_level:
             return max_char
-        else:
-            return None
+
+        # What if you have enough coins to get to 50?
+        # First let's only examine max_char, even though it is possible
+        # that the char with the second highest number of items can get
+        # to 50.
+        logging.info("Char {} is short {} items and has {} gold coins."
+                     .format(max_char, achievement_level-max_by_char,
+                             self.gold_coins))
+
+        return None
 
     def get_winning_char(self):
         return self.achieved()
@@ -139,16 +169,26 @@ class Counter(object):
             if item.serialize() in self.giant_hash[item.char_num]:
                 self.repeat_count += 1
                 logging.debug("Repeat count at {}.".format(self.repeat_count))
+                if item.rarity == 'L':
+                    self.gold_coins += 200
+                elif item.rarity == 'E':
+                    self.gold_coins += 50
+                elif item.rarity == 'R':
+                    self.gold_coins += 5
             else:
                 self.giant_hash[item.char_num].append(item.serialize())
                 self.unique_count += 1
                 if len(self.giant_hash[item.char_num]) > self.max_count:
                     self.max_count = len(self.giant_hash[item.char_num])
 
-        logging.debug("Box counter at {}, unique count a {}, max count at {}."
-                      .format(self.box_counter, self.unique_count, self.max_count))
-        logging.info(", {}, {}, {}"
-                     .format(self.box_counter, self.unique_count, self.max_count))
+        log_level = logging.getLogger().getEffectiveLevel()
+        if log_level == logging.DEBUG:
+            logging.debug("Box counter at {}, unique count a {}, max count at {}."
+                          .format(self.box_counter, self.unique_count, self.max_count))
+        elif log_level == logging.INFO:
+            logging.info(", {}, {}, {}, {}"
+                         .format(self.box_counter, self.unique_count, self.max_count,
+                                 self.gold_coins))
 
 
 def simulation(num_chars):
@@ -164,13 +204,6 @@ def simulation(num_chars):
 
 
 def main():
-    # counters = Counter(23)
-    #
-    # while True:
-    #     if counters.achieved():
-    #         break
-    #
-    #     counters.open_box()
     counters = simulation(23)
 
     print("It took {} boxes to get the achievement.".format(counters.box_counter))
@@ -194,9 +227,9 @@ def lite(num_simulations):
           .format(num_simulations, sum/num_simulations))
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.WARN,
+    logging.basicConfig(level=logging.INFO,
                         stream=sys.stdout,
                         format='%(levelname)s - %(message)s')
 
-    lite(100)
-    # main()
+    # lite(10)
+    main()

@@ -1,13 +1,28 @@
+myGlobal = 5
 
 
-def afunction():
-    print("In a function:")
-    print(magic)
+def func1():
+    myGlobal = 42
+
+
+def func2():
+    print myGlobal
+
+
+def func3():
+    global myGlobal
+    myGlobal = 24
+
+
+def func4():
+    print myGlobal
 
 
 def main():
-    magic = ['m', 'g', 'k']
-
+    func1()
+    func2()
+    func3()
+    func4()
 
 if __name__ == "__main__":
     main()
