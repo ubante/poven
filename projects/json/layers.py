@@ -1,4 +1,4 @@
-# !/usr/bin/env python
+#!/usr/bin/env python
 
 """
 If you have a rediculous json blob, how do you present a slice?
