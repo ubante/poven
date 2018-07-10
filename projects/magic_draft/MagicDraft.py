@@ -186,6 +186,7 @@ class Player:
         # print ", ".join(self.hand.power_history)
         print str(self.hand.power_history).strip('[]')
 
+
 class DoubleList(object):
     """
     Thank you, Mr. Parker.
