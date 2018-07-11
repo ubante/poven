@@ -1,6 +1,6 @@
 from projects.poker.classes import Player
 from projects.poker.classes import Table
-# from projects.poker.classes import Hand, Card
+from projects.poker.classes import Hand, Card
 
 
 def main():
@@ -25,13 +25,23 @@ def main():
     table.set_small_blind(25)
     table.set_blinds()
     table.deal_hole_cards()
+    print("-- Hole cards dealt.")
     table.print_status()
 
-    # # test
-    # ahand = Hand()
-    # ahand.add(Card("H", 1))
-    # ahand.add(Card("C", 2))
-    # print(ahand)
+    # Bet
+    table.preflop_bet()
+    print("-- After the preflop bet.")
+    table.print_status()
+
+    c1 = Card("C", 3)
+    c2 = Card("D", 4)
+    # print("\n")
+    print(c1.is_suited(c2))
+
+    c1 = Card("C", 4)
+    c2 = Card("D", 5)
+    # print("\n")
+    print(c1.is_paired(c2))
 
 
 if __name__ == "__main__":
