@@ -61,6 +61,9 @@ class Hand(object):
     def discard(self, card):
         self.cards.remove(card)
 
+    def toss(self):
+        self.cards = []
+
     def __str__(self):
 
         if not self.cards:
@@ -166,7 +169,7 @@ class Hand(object):
                 if self.cards[1].numeric_rank == 2:   # 42
                     return 8
             elif self.cards[0].numeric_rank == 3:     # 32
-                return 8 
+                return 8
 
         # Finally look at non-suited cards.
         if self.cards[0].numeric_rank == 14:
@@ -271,6 +274,7 @@ class Player(object):
         self.bet = 0
         self.all_in = False
         self.next_player = None
+        self.has_folded = False  # Or this could be self.in_the_hand = True
         self.riskiness = 0  # A scale of 0..20 where 0 is most cautious.
         self.randomness = 1  # A TBD multiplier to riskiness.
 
@@ -292,11 +296,61 @@ class Player(object):
         # This is where the logic will be.
         #
         # Player can:
-        #   1. fold
-        #   2. call/check
-        #   3. raise
+        #   1. fold - return a negative number
+        #   2. check - return 0
+        #   3. call - return the bet to call
+        #   4. raise - return a valid bet value
+
+        print("I am {} and my current bet is {}.".format(self.name, self.bet))
 
         return
+
+    def fold(self):
+        self.has_folded = True
+        self.hand.toss()
+
+
+class CallingStationPlayer(Player):
+    """
+    This player will always check or call.
+    """
+
+    def choose_action(self, table_state):
+        max_bet = table_state.get_max_bet()
+
+        print("I am {}; max bet is {} and my current bet is {} so betting the difference."
+              .format(self.name, max_bet, self.bet))
+        increase = max_bet - self.bet
+        self.bet = max_bet
+        self.stack -= increase
+        print("  - my bet is now {}".format(self.name, self.bet))
+
+        return self.bet
+
+
+class InteractivePlayer(Player):
+    """
+    This is you.
+    """
+
+    pass
+
+
+class FoldingPlayer(Player):
+    """
+    I once saw a disconnected or AFK player make the top 3 in a
+    tournament of 9 players.  Epic.
+    """
+    def choose_action(self, table_state):
+        max_bet = table_state.get_max_bet()
+
+        if max_bet > self.bet:
+            self.fold()
+            print ("I am {} and I'm folding.".format(self.name))
+            return -1
+        else:
+            print ("I am {} and I'm still in it.".format(self.name))
+            return 0
 
 
 class Table(object):
@@ -304,7 +358,7 @@ class Table(object):
     def __init__(self):
         self.players = []
         self.deck = Deck()
-        self.pot = Pot()
+        self.main_pot = Pot()
         self.button_player = None
         self.dealer = None
         self.small_blind_player = None
@@ -313,6 +367,13 @@ class Table(object):
         self.big_blind_value = 0
 
     def add_player(self, player):
+        """
+        The seating will eventually be randomized.
+
+        :param player:
+        :return:
+        """
+
         # For the first player
         if not self.players:
             self.players.append(player)
@@ -327,7 +388,7 @@ class Table(object):
         for player in self.players:
             s = "{}{}\n".format(s, player)
         s = "{}{}\n".format(s, self.deck)
-        s = "{}Pot is ${}.\n".format(s, self.pot.value)
+        s = "{}Pot is ${}.\n".format(s, self.main_pot.value)
 
         if self.dealer:
             s = "{}Dealer is {}.\n".format(s, self.dealer.name)
@@ -362,13 +423,33 @@ class Table(object):
     #         position -= len(self.players)
     #     self.big_blind_player = self.players[position]
 
-    def set_small_blind(self, sb):
+    def define_blinds(self, sb):
+        """
+        Right now, runner.py sets this.  Later, the game will set this
+        and the value will increase over the duration of the game.
+
+        :param sb:
+        :return:
+        """
         self.small_blind_value = sb
         self.big_blind_value = sb * 2
 
-    def set_blinds(self):
+    def post_blinds(self):
         self.small_blind_player.pay_blind(self.small_blind_value)
         self.big_blind_player.pay_blind(self.big_blind_value)
+
+    def get_max_bet(self):
+        """
+        It might be slightly faster if we keep a running tally.
+
+        :return:
+        """
+        max_bet = 0
+        for player in self.players:
+            if player.bet > max_bet:
+                max_bet = player.bet
+
+        return max_bet
 
     def deal_hole_cards(self):
         for _ in [1, 2]:  # Players start a hand with two hole cards.
@@ -384,26 +465,32 @@ class Table(object):
             round_bet += player.bet
             player.bet = 0
 
-        self.pot.add(round_bet)
+        self.main_pot.add(round_bet)
 
     def preflop_bet(self):
         first_better = self.big_blind_player.next_player
-        # print("first bettor is {}".format(first_better.name))
+        print("first bettor is {}".format(first_better.name))
         better = first_better
         better.choose_action(self)
         better = better.next_player
 
         while not better == first_better:
-            # print("next better is {}".format(better.name))
-            better = better.next_player
+            print("next better is {}".format(better.name))
             better.choose_action(self)
+            better = better.next_player
 
-        self.move_bets_to_pot()
+        # self.move_bets_to_pot()
 
 
 class Game(object):
     pass
 
+
+class Dealer(object):
+    """
+    Maybe move the mechanics out of Table into here....
+    """
+    pass
 
 
 
