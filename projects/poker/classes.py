@@ -1,6 +1,15 @@
 from random import randint
 from random import shuffle
 
+import logging
+import sys
+import time
+
+"""
+This appears to be the rules:
+http://www.pokertda.com/poker-tda-rules/
+"""
+
 
 class Card(object):
     """
@@ -257,7 +266,12 @@ class Community(object):
 
 
 class Pot(object):
+    """
+    There can be multiple pots.  The main pot is for everyone while side
+    pots exclude all-in players with no equity.
 
+    Note that bets do not enter a pot until all betting is complete.
+    """
     def __init__(self):
         self.value = 0
 
@@ -272,9 +286,9 @@ class Player(object):
         self.stack = starting_stack
         self.name = name
         self.bet = 0
-        self.all_in = False
         self.next_player = None
         self.has_folded = False  # Or this could be self.in_the_hand = True
+        self.is_all_in = False
         self.riskiness = 0  # A scale of 0..20 where 0 is most cautious.
         self.randomness = 1  # A TBD multiplier to riskiness.
 
@@ -292,22 +306,100 @@ class Player(object):
 
         return True
 
-    def choose_action(self, table_state):
-        # This is where the logic will be.
-        #
-        # Player can:
-        #   1. fold - return a negative number
-        #   2. check - return 0
-        #   3. call - return the bet to call
-        #   4. raise - return a valid bet value
-
-        print("I am {} and my current bet is {}.".format(self.name, self.bet))
-
-        return
+    def get_player_by_name(self):
+        pass  # this may be useful later when setting the button
 
     def fold(self):
         self.has_folded = True
         self.hand.toss()
+
+        return -1
+
+    def call(self, table_state):
+        max_bet = table_state.get_max_bet()
+        increase = max_bet - self.bet
+        stack_before = self.stack
+        bet_before = self.bet
+
+        # Handle the times when calling puts the player all-in.
+        if increase >= self.stack:
+            self.all_in()
+        else:
+            self.bet = max_bet
+            self.stack -= increase
+
+        logging.debug("max bet: {}, increase: {}, bet before: {}, bet after: {}, stack before: {}, stack after: {}"
+                      .format(max_bet, increase, bet_before, self.bet, stack_before, self.stack))
+
+    def raise_(self, amount):
+        """
+
+        :param amount:
+        :return:
+        """
+        self.bet += amount
+        self.stack -= amount
+
+        return amount  # is this necessary?
+
+    def check(self, table_state):
+        return 0  # is this function necessary?
+
+    def all_in(self):
+        all_in_amount = self.stack - self.bet
+        self.bet += self.stack
+        self.stack = 0
+        self.is_all_in = True
+        logging.info("{} has gone all-in.".format(self.name))
+
+        return all_in_amount
+
+    def choose_action_preflop(self, table_state):
+        logging.debug("using the default preflop action of calling")
+        self.call(table_state)  # default action
+
+    def choose_action_flop(self, table_state):
+        pass
+
+    def choose_action_turn(self, table_state):
+        pass
+
+    def choose_action_river(self, table_state):
+        pass
+
+    def choose_action(self, table_state):
+        # A player can choose an action unless they have folded or are
+        # already all-in.
+        #
+        # Player can:
+        #   1. fold - negative one
+        #   2. check - return 0
+        #   3. call - return the amount to call
+        #   4. raise - return a valid raise value
+
+        if self.has_folded:
+            logging.debug("{} has folded so no action".format(self.name))
+            return -2
+
+        if self.is_all_in:
+            logging.debug("{} is all-in so no action".format(self.name))
+            return -3
+
+        logging.debug("I am {} and my current bet is {}.".format(self.name, self.bet))
+
+        if table_state.betting_round == "PREFLOP":
+            self.choose_action_preflop(table_state)
+        elif table_state.betting_round == "FLOP":
+            self.choose_action_flop(table_state)
+        elif table_state.betting_round == "TURN":
+            self.choose_action_flop(table_state)
+        elif table_state.betting_round == "RIVER":
+            self.choose_action_flop(table_state)
+        else:
+            logging.fatal("you should never get here")
+            sys.exit(1)
+
+        return
 
 
 class CallingStationPlayer(Player):
@@ -318,12 +410,15 @@ class CallingStationPlayer(Player):
     def choose_action(self, table_state):
         max_bet = table_state.get_max_bet()
 
-        print("I am {}; max bet is {} and my current bet is {} so betting the difference."
-              .format(self.name, max_bet, self.bet))
-        increase = max_bet - self.bet
-        self.bet = max_bet
-        self.stack -= increase
-        print("  - my bet is now {}".format(self.name, self.bet))
+        if max_bet > self.bet:
+            logging.debug("I am {}; max bet is {} and my current bet is {} so betting the difference."
+                          .format(self.name, max_bet, self.bet))
+            self.call(table_state)
+            logging.debug("  - my bet is now {}".format(self.bet))
+        else:
+            logging.debug("I am {}; max bet is {} and my current bet is {} so just checking."
+                          .format(self.name, max_bet, self.bet))
+            self.check(table_state)
 
         return self.bet
 
@@ -346,11 +441,34 @@ class FoldingPlayer(Player):
 
         if max_bet > self.bet:
             self.fold()
-            print ("I am {} and I'm folding.".format(self.name))
+            logging.debug("I am {} and I'm folding.".format(self.name))
             return -1
         else:
-            print ("I am {} and I'm still in it.".format(self.name))
+            logging.debug("I am {} and I'm still in it.".format(self.name))
             return 0
+
+
+class AllInPlayer(Player):
+    """
+    When raising, this player goes all in.  The needed logic is to
+    decide when to raise.
+
+    When not raising or calling, this player will fold.
+    """
+    pass
+
+
+class GonzoPlayer(Player):
+    """
+    This player always goes all in.  Always.
+    """
+    def choose_action(self, table_state):
+        max_bet = table_state.get_max_bet()
+        logging.debug("{} is gonzo.  Going all in.  Current: {}, max bet: {}, stack: {}"
+                      .format(self.name, self.bet, max_bet, self.stack))
+        raise_value = self.all_in()
+
+        return raise_value
 
 
 class Table(object):
@@ -358,13 +476,14 @@ class Table(object):
     def __init__(self):
         self.players = []
         self.deck = Deck()
+        self.community = []  # maybe a list is enough
         self.main_pot = Pot()
-        self.button_player = None
-        self.dealer = None
+        self.button = None  # should this be self.button_player ?
         self.small_blind_player = None
         self.big_blind_player = None
         self.small_blind_value = 0
         self.big_blind_value = 0
+        self.betting_round = None
 
     def add_player(self, player):
         """
@@ -384,44 +503,51 @@ class Table(object):
         self.players.append(player)
 
     def __str__(self):
-        s = "{} players\n".format(len(self.players))
+        s = "{} players / {} folded / {} all-in \n"\
+            .format(len(self.players), self.count_folded_players(), self.count_all_in_players())
         for player in self.players:
             s = "{}{}\n".format(s, player)
         s = "{}{}\n".format(s, self.deck)
         s = "{}Pot is ${}.\n".format(s, self.main_pot.value)
 
-        if self.dealer:
-            s = "{}Dealer is {}.\n".format(s, self.dealer.name)
+        if self.button:
+            s = "{}Button is {}.\n".format(s, self.button.name)
             s = "{}Small blind is {}.\n".format(s, self.small_blind_player.name)
             s = "{}Big blind is {}.\n".format(s, self.big_blind_player.name)
 
         if self.small_blind_value:
             s = "{}Blinds are ${}/${}.\n".format(s, self.small_blind_value, self.big_blind_value)
 
+        if self.community:
+            community_string = ""
+            for card in self.community:
+                community_string += card.__str__() + " "
+
+            s = "{}Community cards: {}".format(s, community_string)
+
         return s
 
-    def assign_dealer(self):
+    def count_folded_players(self):
+        count = 0
+        for player in self.players:
+            if player.has_folded:
+                count += 1
+
+        return count
+
+    def count_all_in_players(self):
+        count = 0
+        for player in self.players:
+            if player.is_all_in:
+                count += 1
+
+        return count
+
+    def assign_button(self):
         position = randint(0, len(self.players) - 1)
-        self.dealer = self.players[position]
-        self.small_blind_player = self.dealer.next_player
+        self.button = self.players[position]
+        self.small_blind_player = self.button.next_player
         self.big_blind_player = self.small_blind_player.next_player
-    #
-    # def assign_dealer2(self):
-    #     # Should exit if there is only a single player.
-    #
-    #     position = randint(0, len(self.players)-1)
-    #     # print("position = {} with max of {}".format(position, len(self.players)))
-    #     self.dealer = self.players[position]
-    #
-    #     # This could be much better.
-    #     position += 1
-    #     if position == len(self.players):
-    #         position -= len(self.players)
-    #     self.small_blind_player = self.players[position]
-    #     position += 1
-    #     if position == len(self.players):
-    #         position -= len(self.players)
-    #     self.big_blind_player = self.players[position]
 
     def define_blinds(self, sb):
         """
@@ -456,8 +582,46 @@ class Table(object):
             for player in self.players:
                 player.hand.add(self.deck.get_card())
 
+    def deal_flop(self):
+        for _ in range(0, 3):
+            self.community.append(self.deck.get_card())
+
     def print_status(self):
         print self.__str__()
+
+    def check_for_one_player(self):
+        if len(self.players) - self.count_folded_players() != 1:
+            return False
+
+        logging.info("We are down to one player in the hand.")
+        return True
+
+    def check_bet_parity(self):
+        """
+        Return False unless:
+          - all non folded players either have the same bet or are
+            all-in
+
+        :return:
+        """
+
+        bet = self.get_max_bet()
+        for player in self.players:
+            logging.debug("checking parity for {}: ".format(player.name))
+            if player.has_folded:
+                logging.debug("  has folded")
+                continue
+
+            if player.is_all_in:
+                logging.debug("  is all-in")
+                continue
+
+            if player.bet != bet:
+                logging.debug("  needs has to take action.  Current bet is {} which is less than {}"
+                              .format(player.bet, bet))
+                return False
+
+        return True
 
     def move_bets_to_pot(self):
         round_bet = 0
@@ -467,19 +631,85 @@ class Table(object):
 
         self.main_pot.add(round_bet)
 
+    def get_player_action(self, player):
+        """
+        We will eventually import Player classes so there are some
+        functions we do not want them to overwrite.  So the Table will
+        deal with them.
+
+        :param player:
+        :return:
+        """
+        if player.has_folded:
+            logging.debug("{} has folded so no action".format(player.name))
+            return -2
+
+        if player.is_all_in:
+            logging.debug("{} is all-in so no action".format(player.name))
+            return -3
+
+        return player.choose_action(self)
+
     def preflop_bet(self):
-        first_better = self.big_blind_player.next_player
-        print("first bettor is {}".format(first_better.name))
+        first_better = self.big_blind_player.next_player  # UTG player
+        logging.debug("first bettor is {}".format(first_better.name))
         better = first_better
         better.choose_action(self)
         better = better.next_player
 
         while not better == first_better:
-            print("next better is {}".format(better.name))
+            logging.debug("next better is {}".format(better.name))
             better.choose_action(self)
             better = better.next_player
 
-        # self.move_bets_to_pot()
+        # We can do this preflop because of blinds.  Will need something
+        # better in the other betting rounds.
+        print("\n- After going around the table once, we now have:")
+        self.print_status()
+
+        # Check if there is only player in the hand.
+        if self.check_for_one_player():
+            logging.debug("There is only one player left.")
+            return
+
+        # Continue the bets until:
+        #  - every player still in has the same bet
+        #  - except for all-in players
+        while True:
+            # print("There are {} folded players".format(self.count_folded_players()))
+            # print("There are {} all-in players".format(self.count_all_in_players()))
+            # print("There are {} total players ".format(len(self.players)))
+
+            # Check if everyone is already all in.
+            if self.count_all_in_players() + self.count_folded_players() == len(self.players):
+                logging.info("Everyone is either all-in or folded.")
+                return
+
+            logging.info("Checking on {}".format(better.name))
+            # time.sleep(1)
+
+            if better.has_folded:
+                better = better.next_player
+                continue
+
+            if better.is_all_in:
+                better = better.next_player
+                continue
+
+            logging.info("{} to bet".format(better.name))
+            if self.check_bet_parity():
+                logging.info("we are done with betting")
+                break
+
+            better.choose_action(self)
+            better = better.next_player
+
+    def flop_bet(self):
+        first_better = self.small_blind_player  # UTG player
+        print("first bettor is {}".format(first_better.name))
+        better = first_better
+        # better.choose_action(self)
+        self.get_player_action(better)
 
 
 class Game(object):
