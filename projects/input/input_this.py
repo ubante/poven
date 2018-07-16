@@ -13,7 +13,7 @@ while user_choice not in map(str, range(0, ctr+1)):
     # If the user wants to set their own FQDN.
     if user_choice == "1":
         print("You want to replace {}; enter a FQDN: "
-              .format(hostname.search_term), end="")
+              .format("somestring"), end="")
         user_fqdn = raw_input()
         print("Confirm that you want to use {}: ".format(user_fqdn), end="")
         y_n = raw_input("(y/n) ")
@@ -26,5 +26,3 @@ while user_choice not in map(str, range(0, ctr+1)):
         user_choice = -1
 
 print("\nYou chose: {}".format(user_choice))
-
-

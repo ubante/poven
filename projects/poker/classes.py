@@ -1,8 +1,10 @@
 from __future__ import print_function
 
+from collections import defaultdict
 from random import randint
 from random import shuffle
 
+import itertools
 import logging
 import sys
 import time
@@ -35,11 +37,14 @@ class Card(object):
             self.rank = "Q"
         elif numeric_rank == 13:
             self.rank = "K"
+        elif numeric_rank == 10:
+            self.rank = "T"
         else:
             self.rank = numeric_rank
 
     def __str__(self):
-        return "%s%s" % (self.suit, self.rank)
+        # return "{}{:<2}".format(self.suit, self.rank)  # use this if we want 10 instead of T
+        return "{}{}".format(self.suit, self.rank)
 
     def is_suited(self, card):
         if self.suit == card.suit:
@@ -54,18 +59,284 @@ class Card(object):
             return False
 
 
-class Hand(object):
+class Evaluation(object):
+    """
+    This represents the evaluation of five cards.
+    """
 
-    def __init__(self):
-        self.cards = []
+    def __init__(self, cardset):
+        self.cardset = cardset
+        self.cards = self.cardset.cards
+        self.human_eval = "No eval yet"
+
+        # Primary ranks are:
+        # 9: Straight flush
+        # 8: Four of a kind
+        # 7: Full house
+        # 6: Flush
+        # 5: Straight
+        # 4: Three of a kind
+        # 3: Two pair
+        # 2: One pair
+        # 1: High card
+        self.primary_rank = 0
+
+        # Secondary ranks vary with the primary rank.  For example,  for
+        # a straight, the secondary rank will be the highest card.  For
+        # a full house, the secondary rank will be the numeric value of
+        # the three of a kind.
+        self.secondary_rank = 0
+
+        # Tertiary rank also vary's with the primary rank.  For a flush,
+        # this would be the second highest card.  For a full house, this
+        # would be the numeric value of the pair.
+        self.tertiary_rank = 0
+
+        # This just goes on and on.  For a flush and high card, it is
+        # possible to have a rank for each of the five cards.  For the
+        # other types of hands, these will remain at zero.
+        self.quaternary_rank = 0
+        self.quinary_rank = 0
+        self.senary_rank = 0
+
+        self.all_ranks = []
+        self.set_all_ranks()
+
+        if self.cardset.length() != 5:
+            logging.warn("invalid length: {}".format(self.cardset.length()))
+            self.human_eval = "invalid length: {}".format(self.cardset.length())
+
+        self._evaluate()
+
+    def __str__(self):
+        return "{}: {} with ranks: {}".format(self.cardset, self.human_eval, self.all_ranks)
+
+    def set_all_ranks(self):
+        # There must be a way to make a list of objects where if the
+        # objects change, the elements of that list do too.
+        self.all_ranks = [self.primary_rank, self.secondary_rank, self.tertiary_rank,
+                          self.quaternary_rank, self.quinary_rank, self.senary_rank]
+
+    def is_flush(self):
+        suit = None
+        for card in self.cards:
+            if suit:
+                if card.suit != suit:
+                    return False
+            else:
+                suit = card.suit
+
+        return True
+
+    def is_straight(self):
+        ranks = self.cardset.get_reverse_ordered_numeric_ranks()
+        previous = None
+        for rank in ranks:
+            # print("rank {}".format(rank))
+            if previous:
+                if previous - rank != 1:
+                    return False
+                previous = rank
+            else:
+                previous = rank
+
+        return True
+
+    def has_matches(self, num_of_matches, look_for_two_pairs=False):
+        match = defaultdict(int)
+        for card in self.cards:
+            match[card.numeric_rank] += 1
+
+        if look_for_two_pairs:
+            pairs = []
+            other = None
+            for rank in match:
+                if match[rank] == 2:
+                    pairs.append(rank)
+                else:
+                    other = rank
+
+            if len(pairs) == 2:
+                return sorted(pairs, reverse=True), other
+            else:
+                return False
+
+        other_cards = []
+        found_match = None
+        for rank in match:
+            if match[rank] == num_of_matches:
+                found_match = rank
+            else:
+                other_cards.append(rank)
+        if found_match:
+            return found_match, sorted(other_cards, reverse=True)
+        else:
+            return False
+
+    def _evaluate(self):
+        if self.is_straight() and self.is_flush():
+            self.human_eval = "straight flush"
+            self.primary_rank = 9
+            self.secondary_rank = self.cardset.get_reverse_ordered_numeric_ranks()[0]
+            self.set_all_ranks()
+            return
+
+        quads = self.has_matches(4)
+        if quads:
+            self.human_eval = "four of a kind"
+            self.primary_rank = 8
+            self.secondary_rank = quads[0]
+            self.tertiary_rank = quads[1][0]
+            self.set_all_ranks()
+            return
+
+        trips = self.has_matches(3)
+        pair = self.has_matches(2)
+        if trips and pair:
+            self.human_eval = "full house"
+            self.primary_rank = 7
+            self.secondary_rank = trips[0]
+            self.tertiary_rank = pair[0]
+            self.set_all_ranks()
+            return
+
+        if self.is_flush():
+            self.human_eval = "flush"
+            self.primary_rank = 6
+            (self.secondary_rank, self.tertiary_rank, self.quaternary_rank, self.quinary_rank, self.senary_rank) = \
+                self.cardset.get_reverse_ordered_numeric_ranks()
+            self.set_all_ranks()
+            return
+
+        if self.is_straight():
+            self.human_eval = "straight"
+            self.primary_rank = 5
+            self.secondary_rank = self.cardset.get_reverse_ordered_numeric_ranks()[0]
+            self.set_all_ranks()
+            return
+
+        if trips:
+            self.human_eval = "three of a kind"
+            self.primary_rank = 4
+            self.secondary_rank = trips[0]
+            self.tertiary_rank = trips[1][0]
+            self.quaternary_rank = trips[1][1]
+            self.set_all_ranks()
+            return
+
+        pairs = self.has_matches(2, look_for_two_pairs=True)
+        if pairs:
+            self.human_eval = "two pairs"
+            self.primary_rank = 3
+            self.secondary_rank = pairs[0][0]
+            self.tertiary_rank = pairs[0][1]
+            self.quaternary_rank = pairs[1]
+            self.set_all_ranks()
+            return
+
+        if pair:
+            self.human_eval = "one pair"
+            self.primary_rank = 2
+            self.secondary_rank = pair[0]
+            self.tertiary_rank = pair[1][0]
+            self.quaternary_rank = pair[1][1]
+            self.quinary_rank = pair[1][2]
+            self.set_all_ranks()
+            return
+
+        # The measly high card.
+        self.human_eval = "high card"
+        self.primary_rank = 1
+        (self.secondary_rank, self.tertiary_rank, self.quaternary_rank, self.quinary_rank, self.senary_rank) = \
+            self.cardset.get_reverse_ordered_numeric_ranks()
+        self.set_all_ranks()
+        return
+
+
+class CardSet(object):
+    """
+    This represents a set of Cards.
+
+    One disadvantage of using set() is it does a union which won't be a
+    problem until we use a deck that contains duplicates.  That doesn't
+    really happen in poker but does in blackjack.
+    """
+
+    def __init__(self, cards=None):
+        """
+        We can instantiate this object with a set() of Card().
+
+        :param cards:
+        """
+        if cards:
+            self.cards = cards
+        else:
+            self.cards = set()
+        self.possible_hands = []  # list of CardSet()
+        self.evaluation = None
+
+    def __str__(self):
+        values = [c.__str__() for c in self.get_ordered_cards()]
+        return " ".join(values)
+
+    def length(self):
+        return len(self.cards)
 
     def add(self, card):
+        self.cards.add(card)
+
+    def combine(self, another_cardset):
+        """
+        This will take copy the set() of Card() in another CardSet() and
+        add it to this object's self.cards
+        :param another_cardset:
+        :return:
+        """
+        self.cards.update(another_cardset.cards)
+
+    def set_possible_hands(self):
+        set_of_subsets = set(itertools.combinations(self.cards, 5))
+        for possible_hand in set_of_subsets:
+            self.possible_hands.append(CardSet(cards=possible_hand))
+
+    def get_hands(self):
+        self.set_possible_hands()
+
+    def find_best_hand(self):
+        pass
+
+    def get_ordered_cards(self):
+        """
+        This will return a list of the cards ordered by numeric value.
+
+        :return:
+        """
+        return sorted(self.cards, key=lambda x: x.numeric_rank, reverse=True)
+
+    def get_reverse_ordered_numeric_ranks(self):
+        ordered_ranks = []
+        for card in self.cards:
+            ordered_ranks.append(card.numeric_rank)
+
+        return sorted(ordered_ranks, reverse=True)
+
+
+class HoleCards(object):
+
+    def __init__(self):
+        self.cards = []  # Phasing this out for self.cardset
+        self.cardset = CardSet()
+
+    def add(self, card):
+        self.cardset.add(card)
+
         if not self.cards:
             self.cards.append(card)
             return
 
-        # Order the cards for readability and stuff.
-        # Assume hand will never be more than two cards.
+        # Order the cards for readability and stuff.  Assume hole cards
+        # will never be more than two cards.  If we do Omaha, this will
+        # change.
         if self.cards[0].numeric_rank >= card.numeric_rank:
             self.cards.append(card)
         else:
@@ -134,32 +405,32 @@ class Hand(object):
                     return 3
                 if self.cards[1].numeric_rank == 10:  # QT
                     return 4
-                if self.cards[1].numeric_rank == 9:   # Q9
+                if self.cards[1].numeric_rank == 9:  # Q9
                     return 5
-                if self.cards[1].numeric_rank == 8:   # Q8
+                if self.cards[1].numeric_rank == 8:  # Q8
                     return 7
             elif self.cards[0].numeric_rank == 11:
                 if self.cards[1].numeric_rank == 10:  # JT
                     return 3
-                if self.cards[1].numeric_rank == 9:   # J9
+                if self.cards[1].numeric_rank == 9:  # J9
                     return 4
-                if self.cards[1].numeric_rank == 8:   # J8
+                if self.cards[1].numeric_rank == 8:  # J8
                     return 6
-                if self.cards[1].numeric_rank == 8:   # J7
+                if self.cards[1].numeric_rank == 8:  # J7
                     return 8
             elif self.cards[0].numeric_rank == 10:
-                if self.cards[1].numeric_rank == 9:   # T9
+                if self.cards[1].numeric_rank == 9:  # T9
                     return 4
-                if self.cards[1].numeric_rank == 8:   # T8
+                if self.cards[1].numeric_rank == 8:  # T8
                     return 5
-                if self.cards[1].numeric_rank == 7:   # T7
+                if self.cards[1].numeric_rank == 7:  # T7
                     return 7
             elif self.cards[0].numeric_rank == 9:
-                if self.cards[1].numeric_rank == 8:   # 98
+                if self.cards[1].numeric_rank == 8:  # 98
                     return 4
-                if self.cards[1].numeric_rank == 7:   # 97
+                if self.cards[1].numeric_rank == 7:  # 97
                     return 5
-                if self.cards[1].numeric_rank == 6:   # 96
+                if self.cards[1].numeric_rank == 6:  # 96
                     return 8
             elif 8 >= self.cards[0].numeric_rank >= 7:
                 if (self.cards[0].numeric_rank - self.cards[1].numeric_rank) == 1:  # 87 76
@@ -172,16 +443,16 @@ class Hand(object):
                 if self.cards[1].numeric_rank == 5 or self.cards[1].numeric_rank == 4:  # 65 64
                     return 7
             elif self.cards[0].numeric_rank == 5:
-                if self.cards[1].numeric_rank == 4:   # 54
+                if self.cards[1].numeric_rank == 4:  # 54
                     return 6
-                if self.cards[1].numeric_rank == 3:   # 53
+                if self.cards[1].numeric_rank == 3:  # 53
                     return 7
             elif self.cards[0].numeric_rank == 4:
-                if self.cards[1].numeric_rank == 3:   # 43
+                if self.cards[1].numeric_rank == 3:  # 43
                     return 7
-                if self.cards[1].numeric_rank == 2:   # 42
+                if self.cards[1].numeric_rank == 2:  # 42
                     return 8
-            elif self.cards[0].numeric_rank == 3:     # 32
+            elif self.cards[0].numeric_rank == 3:  # 32
                 return 8
 
         # Finally look at non-suited cards.
@@ -194,7 +465,7 @@ class Hand(object):
                 return 4
             if self.cards[1].numeric_rank == 10:  # AT
                 return 6
-            if self.cards[1].numeric_rank == 9:   # A9
+            if self.cards[1].numeric_rank == 9:  # A9
                 return 8
         elif self.cards[0].numeric_rank == 13:
             if self.cards[1].numeric_rank == 12:  # KQ
@@ -203,26 +474,26 @@ class Hand(object):
                 return 5
             if self.cards[1].numeric_rank == 10:  # KT
                 return 6
-            if self.cards[1].numeric_rank == 9:   # K9
+            if self.cards[1].numeric_rank == 9:  # K9
                 return 8
         elif self.cards[0].numeric_rank == 12:
             if self.cards[1].numeric_rank == 11:  # QJ
                 return 5
             if self.cards[1].numeric_rank == 10:  # QT
                 return 6
-            if self.cards[1].numeric_rank == 9:   # Q9
+            if self.cards[1].numeric_rank == 9:  # Q9
                 return 8
         elif self.cards[0].numeric_rank == 11:
             if self.cards[1].numeric_rank == 10:  # JT
                 return 5
-            if self.cards[1].numeric_rank == 9:   # J9
+            if self.cards[1].numeric_rank == 9:  # J9
                 return 7
-            if self.cards[1].numeric_rank == 8:   # J8
+            if self.cards[1].numeric_rank == 8:  # J8
                 return 8
         elif self.cards[0].numeric_rank == 10:
-            if self.cards[1].numeric_rank == 9:   # T9
+            if self.cards[1].numeric_rank == 9:  # T9
                 return 7
-            if self.cards[1].numeric_rank == 8:   # T8
+            if self.cards[1].numeric_rank == 8:  # T8
                 return 8
         elif self.cards[0].numeric_rank == 9 and self.cards[0].numeric_rank == 8:  # 98
             return 7
@@ -276,6 +547,7 @@ class Pot(object):
 
     Note that bets do not enter a pot until all betting is complete.
     """
+
     def __init__(self):
         self.value = 0
 
@@ -286,7 +558,8 @@ class Pot(object):
 class Player(object):
 
     def __init__(self, starting_stack, name):
-        self.hand = Hand()
+        self.holecards = HoleCards()
+        self.best_hand = None
         self.stack = starting_stack
         self.name = name
         self.bet = 0
@@ -298,9 +571,9 @@ class Player(object):
 
     def __str__(self):
         if self.bet:
-            return "{} {} ${} (${})".format(self.name, self.hand, self.stack, self.bet)
+            return "{} {} ${} (${})".format(self.name, self.holecards, self.stack, self.bet)
         else:
-            return "{} {} ${} ".format(self.name, self.hand, self.stack)
+            return "{} {} ${} ".format(self.name, self.holecards, self.stack)
 
     def pay_blind(self, blind_value):
         # Should check if stack is greater than value.
@@ -313,7 +586,7 @@ class Player(object):
     def fold(self):
         logging.debug("folding hand")
         self.has_folded = True
-        self.hand.toss()
+        self.holecards.toss()
 
         return -1
 
@@ -456,6 +729,7 @@ class InteractivePlayer(Player):
     """
     This is you.
     """
+
     def get_user_input(valid_characters_iterable=None, valid_numbers=None):
         """
         Build a prompt from the given characters or numbers.  Ask the user
@@ -542,6 +816,7 @@ class FoldingPlayer(Player):
     I once saw a disconnected or AFK player make the top 3 in a
     tournament of 9 players.  Epic.
     """
+
     def choose_action(self, table_state):
         max_bet = table_state.get_max_bet()
 
@@ -596,6 +871,7 @@ class GonzoPlayer(Player):
     """
     This player always goes all in.  Always.
     """
+
     def choose_action(self, table_state):
         max_bet = table_state.get_max_bet()
         logging.debug("{} is gonzo.  Going all in.  Current: {}, max bet: {}, stack: {}"
@@ -610,7 +886,8 @@ class Table(object):
     def __init__(self):
         self.players = []
         self.deck = Deck()
-        self.community = []  # maybe a list is enough
+        self.community = []  # maybe a list is enough - nope
+        self.communityset = CardSet()
         self.main_pot = Pot()
         self.button = None  # should this be self.button_player ?
         self.small_blind_player = None
@@ -636,6 +913,14 @@ class Table(object):
         player.next_player = self.players[0]
         self.players.append(player)
 
+    def get_cardlist_string(self, cards):
+        # Try to move these to CardSet().__str__()
+        values = []
+        for card in cards:
+            values.append("{}{}".format(card.suit, card.numeric_rank))
+
+        return " ".join(values)
+
     def get_community_string(self):
         community_string = ""
         for card in self.community:
@@ -652,7 +937,7 @@ class Table(object):
         return None
 
     def __str__(self):
-        s = "{} players / {} folded / {} all-in \n"\
+        s = "{} players / {} folded / {} all-in \n" \
             .format(len(self.players), self.count_folded_players(), self.count_all_in_players())
         for player in self.players:
             s = "{}{}\n".format(s, player)
@@ -738,17 +1023,26 @@ class Table(object):
     def deal_hole_cards(self):
         for _ in [1, 2]:  # Players start a hand with two hole cards.
             for player in self.players:
-                player.hand.add(self.deck.get_card())
+                player.holecards.add(self.deck.get_card())
 
     def deal_flop(self):
         for _ in range(0, 3):
-            self.community.append(self.deck.get_card())
+            card = self.deck.get_card()
+            self.community.append(card)
+            # self.community.append(self.deck.get_card())
+            self.communityset.add(card)
 
     def deal_turn(self):
-        self.community.append(self.deck.get_card())
+        card = self.deck.get_card()
+        self.community.append(card)
+        self.communityset.add(card)
+        # self.community.append(self.deck.get_card())
 
     def deal_river(self):
-        self.community.append(self.deck.get_card())
+        card = self.deck.get_card()
+        self.community.append(card)
+        self.communityset.add(card)
+        # self.community.append(self.deck.get_card())
 
     def print_status(self):
         print(self.__str__())
@@ -905,10 +1199,41 @@ class Table(object):
             self.get_player_action(better)
             better = better.next_player
 
+    def find_best_hand(self, cardlist):  # It might be time to make CardList(object)
+
+        # Use brute force
+        cardset = set(cardlist)
+        # for subset in list(itertools.combinations(cardset, 5)):
+        # for subset in [c.__str__() for c in itertools.combinations(cardset, 5)]:
+        # for subset in [c for c in list(itertools.combinations(cardset, 5))]:  # works
+        for subset in list(itertools.combinations(cardset, 5)):
+            print("  {}".format(self.get_cardlist_string(list(subset))))
+
     def find_winners(self):
-        pass
+        active_players = [p for p in self.players if not p.has_folded]
 
+        print("These players are still active:")
+        for ap in active_players:
 
+            print("- {}".format(ap))
+            # print("  {}".format(self.get_cardlist_string(ap.holecards.cards
+            #                                              + self.community)))
+
+            combined_cardset = CardSet()
+            combined_cardset.combine(ap.holecards.cardset)
+            combined_cardset.combine(self.communityset)
+
+            # combined_cardset = CardSet(ap.holecards.cardset.cards)
+            # combined_cardset.combine(self.communityset)
+
+            print("  {}".format(combined_cardset))
+
+            # self.find_best_hand(ap.holecards.cards + self.community)
+
+            print("  these are the possible hands:")
+            combined_cardset.set_possible_hands()
+            for possible in combined_cardset.possible_hands:
+                print("  - {}".format(possible))
 
 
 class Game(object):
@@ -920,14 +1245,3 @@ class Dealer(object):
     Maybe move the mechanics out of Table into here....
     """
     pass
-
-
-
-
-
-
-
-
-
-
-
