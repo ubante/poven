@@ -14,6 +14,12 @@ This appears to be the rules:
 http://www.pokertda.com/poker-tda-rules/
 
 Trying to stick to the definitions in https://www.pokernews.com/pokerterms/reraise.htm
+
+In addtion to those definitions:
+  - hand: the five cards a player constructs
+  - round: a betting stage; there are four per game: preflop/flop/turn/river
+  - game: what happens between the shuffling of the deck
+  - tournament: from the first game until there's only one player left
 """
 
 
@@ -105,12 +111,52 @@ class Evaluation(object):
         if self.cardset.length() != 5:
             logging.warn("invalid length: {}".format(self.cardset.length()))
             self.human_eval = "invalid length: {}".format(self.cardset.length())
+            return
 
         self._evaluate()
 
     def __str__(self):
         return "{}: {} with ranks: {}".format(self.cardset, self.human_eval, self.all_ranks)
 
+    def compare(self, another_eval):
+        """
+        This will return 1 if this eval is greater and will return 2 if
+        the other eval is greater.  If they are even, then this will
+        return 0.
+        
+        Greater values in rank means betterness.
+
+        :param another_eval:
+        :return:
+        """
+        
+        if self.primary_rank > another_eval.primary_rank:
+            return 1
+        elif self.primary_rank < another_eval.primary_rank:
+            return 2
+        elif self.secondary_rank > another_eval.secondary_rank:
+            return 1
+        elif self.secondary_rank < another_eval.secondary_rank:
+            return 2
+        elif self.tertiary_rank > another_eval.tertiary_rank:
+            return 1
+        elif self.tertiary_rank < another_eval.tertiary_rank:
+            return 2
+        elif self.quaternary_rank > another_eval.quaternary_rank:
+            return 1
+        elif self.quaternary_rank < another_eval.quaternary_rank:
+            return 2
+        elif self.quinary_rank > another_eval.quinary_rank:
+            return 1
+        elif self.quinary_rank < another_eval.quinary_rank:
+            return 2
+        elif self.senary_rank > another_eval.senary_rank:
+            return 1
+        elif self.senary_rank < another_eval.senary_rank:
+            return 2
+        else:
+            return 0
+        
     def set_all_ranks(self):
         # There must be a way to make a list of objects where if the
         # objects change, the elements of that list do too.
@@ -273,7 +319,8 @@ class CardSet(object):
         else:
             self.cards = set()
         self.possible_hands = []  # list of CardSet()
-        self.evaluation = None
+        # self.evaluation = None
+        self.best_hand = None
 
     def __str__(self):
         values = [c.__str__() for c in self.get_ordered_cards()]
@@ -294,16 +341,41 @@ class CardSet(object):
         """
         self.cards.update(another_cardset.cards)
 
+    def is_better_than(self, another_cardset):
+        eval_this = Evaluation(self)  # should we make this a member?
+        eval_that = Evaluation(another_cardset)
+
+        comparision = eval_this.compare(eval_that)
+        if comparision == 1:
+            return True
+
+        return False
+
     def set_possible_hands(self):
         set_of_subsets = set(itertools.combinations(self.cards, 5))
         for possible_hand in set_of_subsets:
             self.possible_hands.append(CardSet(cards=possible_hand))
 
-    def get_hands(self):
-        self.set_possible_hands()
-
     def find_best_hand(self):
-        pass
+        self.set_possible_hands()
+        best_hand = None
+        for possible in self.possible_hands:
+            evaled = Evaluation(possible)
+            # print(evaled)
+
+            if best_hand is None:
+                best_hand = possible
+                # print("^ setting initial hand")
+                continue
+
+            if best_hand.is_better_than(possible):
+                pass
+                # print("^^ keeping")
+            else:
+                best_hand = possible
+                # print("^ new best hand")
+
+        self.best_hand = best_hand  # Just stick to the object's field?
 
     def get_ordered_cards(self):
         """
@@ -551,23 +623,33 @@ class Pot(object):
     def __init__(self):
         self.value = 0
 
+    def reset(self):
+        self.value = 0
+
     def add(self, v):
         self.value += v
+
+    def split(self, num_players):
+        return self.value / num_players
 
 
 class Player(object):
 
     def __init__(self, starting_stack, name):
-        self.holecards = HoleCards()
-        self.best_hand = None
         self.stack = starting_stack
         self.name = name
-        self.bet = 0
         self.next_player = None
-        self.has_folded = False  # Or this could be self.in_the_hand = True
-        self.is_all_in = False
+        self.previous_player = None
         self.riskiness = 0  # A scale of 0..20 where 0 is most cautious.
         self.randomness = 1  # A TBD multiplier to riskiness.
+
+        # The below get reset after each game.
+        self.holecards = HoleCards()
+        self.best_hand = None
+        self.best_hand_evaluation = None
+        self.bet = 0
+        self.has_folded = False  # Or this could be self.in_the_hand = True
+        self.is_all_in = False
 
     def __str__(self):
         if self.bet:
@@ -575,13 +657,26 @@ class Player(object):
         else:
             return "{} {} ${} ".format(self.name, self.holecards, self.stack)
 
+    def reset(self):
+        self.holecards = HoleCards()
+        self.best_hand = None
+        self.best_hand_evaluation = None
+        self.bet = 0
+        self.has_folded = False  # Or this could be self.in_the_hand = True
+        self.is_all_in = False
+
+    def state_without_cards(self):
+        if self.bet:
+            return "{} xx xx ${} (${})".format(self.name, self.stack, self.bet)
+        else:
+            return "{} xx xx ${} ".format(self.name, self.stack)
+
     def pay_blind(self, blind_value):
-        # Should check if stack is greater than value.
-
-        self.stack -= blind_value
-        self.bet = blind_value
-
-        return True
+        if self.stack > blind_value:
+            self.stack -= blind_value
+            self.bet = blind_value
+        else:
+            self.all_in()
 
     def fold(self):
         logging.debug("folding hand")
@@ -618,6 +713,12 @@ class Player(object):
         :param amount:
         :return:
         """
+        # Check that player can make this raise.
+        if amount > self.stack:
+            logging.error("{} is trying to raise (${}) more than their stack (${})."
+                          .format(self.name, amount, self.stack))
+            sys.exit(1)
+
         increase = amount - self.bet
         self.bet += increase
         self.stack -= increase
@@ -757,7 +858,21 @@ class InteractivePlayer(Player):
                 logging.debug("User choose: '{}'.".format(user_input))
                 return user_input
 
+    def get_user_input_range(self, minimum, maximum):
+        while True:
+            user_input = input("[{} .. {}]: ".format(minimum, maximum))
+            logging.debug("User entered '{}'.".format(user_input))
+
+            if minimum <= user_input <= maximum:
+                return user_input
+            else:
+                logging.info("That is not between {} and {}, inclusive.".format(minimum, maximum))
+
     def choose_interactive_action(self, table_state):
+        print("@@@ ")
+        print("@@@ ")
+        print("@@@ Here's the table state:")
+        print(table_state.state_without_cards())
         print("@@@ Here are your stats:")
         print("@@@ {}".format(self))
         print("@@@ {}".format(table_state.get_community_string()))
@@ -794,7 +909,14 @@ class InteractivePlayer(Player):
         elif user_action == "3":
             self.call(table_state)
         elif user_action == "4":
-            pass
+            min_bet = table_state.get_max_bet() - self.bet + table_state.big_blind_value
+            print("Enter a value between {} and {}, inclusive:".format(min_bet, self.stack))
+            user_input = self.get_user_input_range(min_bet, self.stack)
+
+            # We have to increment what the user added by their current
+            # bet because raise_() will decrement what we send it by
+            # their current bet.  I'm not crazy about that.
+            self.raise_(user_input + self.bet)
         elif user_action == "5":
             self.all_in()
 
@@ -857,6 +979,10 @@ class PreFlopTripleBbPlayer(Player):
         # If there's already a bet I have to call, check if it is less
         # than what I want to raise.
         desired_raise = table_state.big_blind_value * 3
+        if desired_raise > self.stack:
+            desired_raise = self.stack
+            logging.info("{} has no fear.".format(self.name))
+
         to_bet = table_state.get_max_bet()
 
         if to_bet > desired_raise:
@@ -885,16 +1011,20 @@ class Table(object):
 
     def __init__(self):
         self.players = []
+        self.button = None  # should this be self.button_player ?
+        self.small_blind_value = 0
+        self.big_blind_value = 0
+        self.game_ctr = 1
+
+        # The below values always get reset after each game.
         self.deck = Deck()
         self.community = []  # maybe a list is enough - nope
         self.communityset = CardSet()
         self.main_pot = Pot()
-        self.button = None  # should this be self.button_player ?
         self.small_blind_player = None
         self.big_blind_player = None
-        self.small_blind_value = 0
-        self.big_blind_value = 0
         self.betting_round = None
+        self.winners = []
 
     def add_player(self, player):
         """
@@ -910,8 +1040,19 @@ class Table(object):
             return
 
         self.players[-1].next_player = player
+        player.previous_player = self.players[-1]
         player.next_player = self.players[0]
+        self.players[0].previous_player = player
+
         self.players.append(player)
+
+    def remove_player(self, player):
+        if self.button == player:
+            self.button = player.next_player
+
+        player.previous_player.next_player = player.next_player
+        player.next_player.previous_player = player.previous_player
+        self.players.remove(player)
 
     def get_cardlist_string(self, cards):
         # Try to move these to CardSet().__str__()
@@ -937,10 +1078,39 @@ class Table(object):
         return None
 
     def __str__(self):
-        s = "{} players / {} folded / {} all-in \n" \
-            .format(len(self.players), self.count_folded_players(), self.count_all_in_players())
+        s = "{} players / {} folded / {} all-in / game #{}\n" \
+            .format(len(self.players), self.count_folded_players(), self.count_all_in_players(), self.game_ctr)
         for player in self.players:
             s = "{}{}\n".format(s, player)
+        s = "{}{}\n".format(s, self.deck)
+        s = "{}Pot is ${}.\n".format(s, self.main_pot.value)
+
+        if self.button:
+            s = "{}Button is {}.\n".format(s, self.button.name)
+            s = "{}Small blind is {}.\n".format(s, self.small_blind_player.name)
+            s = "{}Big blind is {}.\n".format(s, self.big_blind_player.name)
+
+        if self.small_blind_value:
+            s = "{}Blinds are ${}/${}.\n".format(s, self.small_blind_value, self.big_blind_value)
+
+        if self.community:
+            # TODO: use get_community_string() here
+            community_string = ""
+            for card in self.community:
+                community_string += card.__str__() + " "
+
+            s = "{}Community cards: {}".format(s, community_string)
+
+        return s
+
+    def state_without_cards(self):
+        s = "{} players / {} folded / {} all-in / game #{}\n" \
+            .format(len(self.players), self.count_folded_players(), self.count_all_in_players(), self.game_ctr)
+        #
+        # s = "{} players / {} folded / {} all-in \n" \
+        #     .format(len(self.players), self.count_folded_players(), self.count_all_in_players())
+        for player in self.players:
+            s = "{}{}\n".format(s, player.state_without_cards())
         s = "{}{}\n".format(s, self.deck)
         s = "{}Pot is ${}.\n".format(s, self.main_pot.value)
 
@@ -978,6 +1148,10 @@ class Table(object):
 
         return count
 
+    def assign_blind_players(self):
+        self.small_blind_player = self.button.next_player
+        self.big_blind_player = self.small_blind_player.next_player
+
     def assign_button(self, name=None):
         if name:
             self.button = self.get_player_by_name(name)
@@ -989,8 +1163,9 @@ class Table(object):
         else:
             logging.debug("Assinging '{}' to be the button player.".format(name))
 
-        self.small_blind_player = self.button.next_player
-        self.big_blind_player = self.small_blind_player.next_player
+        self.assign_blind_players()
+        # self.small_blind_player = self.button.next_player
+        # self.big_blind_player = self.small_blind_player.next_player
 
     def define_blinds(self, sb):
         """
@@ -1199,41 +1374,95 @@ class Table(object):
             self.get_player_action(better)
             better = better.next_player
 
-    def find_best_hand(self, cardlist):  # It might be time to make CardList(object)
-
-        # Use brute force
-        cardset = set(cardlist)
-        # for subset in list(itertools.combinations(cardset, 5)):
-        # for subset in [c.__str__() for c in itertools.combinations(cardset, 5)]:
-        # for subset in [c for c in list(itertools.combinations(cardset, 5))]:  # works
-        for subset in list(itertools.combinations(cardset, 5)):
-            print("  {}".format(self.get_cardlist_string(list(subset))))
+    # def find_best_hand(self, cardlist):  # It might be time to make CardList(object)
+    #
+    #     # Use brute force
+    #     cardset = set(cardlist)
+    #     # for subset in list(itertools.combinations(cardset, 5)):
+    #     # for subset in [c.__str__() for c in itertools.combinations(cardset, 5)]:
+    #     # for subset in [c for c in list(itertools.combinations(cardset, 5))]:  # works
+    #     for subset in list(itertools.combinations(cardset, 5)):
+    #         print("  {}".format(self.get_cardlist_string(list(subset))))
 
     def find_winners(self):
         active_players = [p for p in self.players if not p.has_folded]
 
         print("These players are still active:")
+        winners = []
         for ap in active_players:
-
             print("- {}".format(ap))
-            # print("  {}".format(self.get_cardlist_string(ap.holecards.cards
-            #                                              + self.community)))
-
             combined_cardset = CardSet()
             combined_cardset.combine(ap.holecards.cardset)
             combined_cardset.combine(self.communityset)
-
-            # combined_cardset = CardSet(ap.holecards.cardset.cards)
-            # combined_cardset.combine(self.communityset)
-
             print("  {}".format(combined_cardset))
+            combined_cardset.find_best_hand()
+            evaled = Evaluation(combined_cardset.best_hand)
+            print("  {}".format(evaled))
 
-            # self.find_best_hand(ap.holecards.cards + self.community)
+            if not winners:
+                winners = [(ap, combined_cardset, evaled)]
+                continue
 
-            print("  these are the possible hands:")
-            combined_cardset.set_possible_hands()
-            for possible in combined_cardset.possible_hands:
-                print("  - {}".format(possible))
+            comparision = evaled.compare(winners[0][2])
+            if comparision == 0:
+                print("^tie")
+                winners.append((ap, combined_cardset, evaled))
+            elif comparision == 1:
+                print("^new best deck")
+                winners = [(ap, combined_cardset, evaled)]
+
+        print("\nThe winners are:")
+        for winner in winners:
+            print("{:<65} {}".format(winner[2], winner[0].name))
+            self.winners.append(winner[0])
+
+    def payout(self):
+        num_winners = len(self.winners)
+
+        # TODO: sidepots
+        payout_per_player = self.main_pot.split(num_winners)
+        for winner in self.winners:
+            print("Paying out {}".format(winner.name))
+            print("  current stack: {} + payout: {} = ".format(winner.stack, payout_per_player))
+            winner.stack += payout_per_player
+            print("  stack after payout: {}".format(winner.stack))
+
+    def remove_busted_players(self):
+        busted_players = [p for p in self.players if p.stack == 0]
+        for busted_player in busted_players:
+            # print(type(busted_player))
+            print("busted out: {}".format(busted_player.name))
+            self.remove_player(busted_player)
+
+        # Checking for negative stacks.
+        for player in self.players:
+            if player.stack < 0:
+                logging.fatal("WE HAVE BUGS.")
+                sys.exit(1)
+
+    def check_tournament_winner(self):
+        if len(self.players) == 1:
+            print("=============================================================")
+            print("=============================================================")
+            print("=============================================================")
+            print("")
+            print("We have a winner!!!!")
+            print(self.players[0])
+            sys.exit()
+
+    def reset(self):
+        for player in self.players:
+            player.reset()
+
+        self.assign_blind_players()
+        self.deck = Deck()
+        self.main_pot.reset()
+        self.community = []  # maybe a list is enough - nope
+        self.communityset = CardSet()
+        self.betting_round = None
+        self.winners = []
+        self.game_ctr += 1
+        # time.sleep(1)  # even players need to rest
 
 
 class Game(object):

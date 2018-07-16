@@ -74,68 +74,89 @@ def main():
     # table.add_player(player5)
     player7 = FoldingPlayer(initial_stack, "Fifi")
     table.add_player(player7)
-    player8 = GonzoPlayer(initial_stack, "Gary")
-    table.add_player(player8)
+    # player8 = GonzoPlayer(initial_stack, "Gary")
+    # table.add_player(player8)
     table.add_player(PreFlopTripleBbPlayer(initial_stack, "Pete"))
     table.print_status()
 
-    # Start a game.
-    table.betting_round = "PREFLOP"
-    table.assign_button("Dale")
-    table.define_blinds(25)
-    table.post_blinds()
-    table.deal_hole_cards()
-    print("-- Hole cards dealt.")
-    table.print_status()
+    # Start a tournament.
+    table.assign_button()
+    # table.assign_button("Dale")
 
-    # Bet preflop
-    print("-- This is the preflop bet.")
-    table.preflop_bet()
-    # print("-- After the preflop bet.")
-    # table.print_status()
-    print("-- After moving the bets into the main pot.")
-    table.move_bets_to_pot()
-    table.print_status()
+    while True:
+        table.betting_round = "PREFLOP"
+        table.define_blinds(25)
+        table.post_blinds()
+        table.deal_hole_cards()
+        print("-- Hole cards dealt.")
+        table.print_status()
 
-    # Deal the flop
-    table.deal_flop()
-    table.betting_round = "FLOP"
-    print("-- After dealing the flop.")
-    table.print_status()
+        # Bet preflop
+        print("-- This is the preflop bet.")
+        table.preflop_bet()
+        # print("-- After the preflop bet.")
+        # table.print_status()
+        print("-- After moving the bets into the main pot.")
+        table.move_bets_to_pot()
+        table.print_status()
 
-    # Bet the flop
-    print("\n-- This is the flop bet.")
-    table.post_preflop_bet()
-    print("-- This is after the flop round.")
-    table.print_status()
+        # Deal the flop
+        table.deal_flop()
+        table.betting_round = "FLOP"
+        print("-- After dealing the flop.")
+        table.print_status()
 
-    # Deal the turn
-    table.deal_turn()
-    table.betting_round = "TURN"
-    print("-- After dealing the turn.")
-    table.print_status()
+        # Bet the flop
+        print("\n-- This is the flop bet.")
+        table.post_preflop_bet()
+        print("-- This is after the flop round.")
+        table.print_status()
 
-    # Bet the turn
-    print("\n-- This is the turn bet.")
-    table.post_preflop_bet()
-    print("-- This is after the turn round.")
-    table.print_status()
+        # Deal the turn
+        table.deal_turn()
+        table.betting_round = "TURN"
+        print("-- After dealing the turn.")
+        table.print_status()
 
-    # Deal the river
-    table.deal_river()
-    table.betting_round = "RIVER"
-    print("-- After dealing the river.")
-    table.print_status()
+        # Bet the turn
+        print("\n-- This is the turn bet.")
+        table.post_preflop_bet()
+        print("-- This is after the turn round.")
+        table.print_status()
 
-    # Bet the river
-    print("\n-- This is the river bet.")
-    table.post_preflop_bet()
-    print("-- This is after the river round.")
-    table.print_status()
+        # Deal the river
+        table.deal_river()
+        table.betting_round = "RIVER"
+        print("-- After dealing the river.")
+        table.print_status()
 
-    # Find the winners
-    print("\n-- Finding the winner.")
-    table.find_winners()
+        # Bet the river
+        print("\n-- This is the river bet.")
+        table.post_preflop_bet()
+        print("-- This is after the river round.")
+        table.print_status()
+
+        # Find the winners
+        print("\n-- Finding the winner.")
+        table.find_winners()
+
+        # Payout
+        table.payout()
+        print("\n-- Before clearing out the busted players.")
+        table.print_status()
+
+        # Remove busted players
+        table.remove_busted_players()
+        print("\n-- The table remove busted players.")
+        table.print_status()
+
+        # Check for tournament winner.
+        table.check_tournament_winner()
+
+        # Reset the table
+        table.reset()
+        print("\n-- After resetting the table.")
+        table.print_status()
 
 
 def main3():
@@ -223,8 +244,6 @@ def main3():
     print(eval9)
 
 
-
-
 def print_cardlist(cards):
     values = []
     for card in cards:
@@ -251,7 +270,7 @@ def main2():
 
 
 if __name__ == "__main__":
-    # main()
-    main3()
+    main()
+    # main3()
     # main2()
 
