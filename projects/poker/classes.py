@@ -506,7 +506,7 @@ class HoleCards(object):
                     return 8
             elif 8 >= self.cards[0].numeric_rank >= 7:
                 if (self.cards[0].numeric_rank - self.cards[1].numeric_rank) == 1:  # 87 76
-                    return 4
+                    return 5
                 if (self.cards[0].numeric_rank - self.cards[1].numeric_rank) == 2:  # 86 75
                     return 6
                 if (self.cards[0].numeric_rank - self.cards[1].numeric_rank) == 3:  # 85 74
@@ -614,20 +614,57 @@ class Community(object):
 
 class Pot(object):
     """
-    There can be multiple pots.  The main pot is for everyone while side
-    pots exclude all-in players with no equity.
+    In live poker, there can be multiple pots when someone goes in but
+    there's still action on the table.
 
-    Note that bets do not enter a pot until all betting is complete.
+    Here, we will have one pot, the main pot.  But we'll keep track of
+    each players equity.  Once the game is complete, we'll segment the
+    pot.  Using the equity, we know how much of the pot is split across
+    all players.  This is the first segment.  And how much of the pot is
+    split across all-1 players.  This is the second segment.  This will
+    continue until all equity is accounted for.
+
+    For each segment, we'll find take the involved players and find who
+    has the best hand and that player will get that segment of the pot.
+    Folded players will have dead hands so their equity remains in the
+    pot but their hand cannot win.
+
+    If all players have equal equity, then there will be one segment
+    and the player with the best hand gets the whole pot.
+
+    For example, if one player goes all in and everyone else calls
+    without going all in themselves, and there is no further betting,
+    then each player has equal equity and we still have one segment.
+
+    For another example, if PlayerA goes all on the flop and everyone
+    folds except PlayerB and PlayerC.  Those two players call.  Then
+    on the turn, they check-check.  Then on the river, they raise-call,
+    then we have two segments.  The first segment are for exactly the
+    three remaining players.  The second segment is just for PlayerB
+    and PlayerC.
+
+    Note that bets do not enter a pot until all betting is complete for
+    the round.
+
+    TODO: this needs to track equity because Fifi is beating Gary which
+          should be an extreme rarity.
     """
 
     def __init__(self):
         self.value = 0
+        self.equity = defaultdict(int)
 
     def reset(self):
         self.value = 0
 
-    def add(self, v):
-        self.value += v
+    def add_equity(self, amount, player):  # I might be misusing "equity"
+        self.equity[player.name] += amount
+        self.value += amount
+
+    def get_segments(self):
+        segments = []  # list of tuples (segment_total, player_list)
+
+        return segments
 
     def split(self, num_players):
         return self.value / num_players
@@ -1015,6 +1052,7 @@ class Table(object):
         self.small_blind_value = 0
         self.big_blind_value = 0
         self.game_ctr = 1
+        self.bust_log = defaultdict(list)
 
         # The below values always get reset after each game.
         self.deck = Deck()
@@ -1223,11 +1261,15 @@ class Table(object):
         print(self.__str__())
 
     def check_for_one_player(self):
-        if len(self.players) - self.count_folded_players() != 1:
+        remaining_player_count = len(self.players) - self.count_folded_players()
+        if remaining_player_count >= 1:
             return False
-
-        logging.info("We are down to one player in the hand.")
-        return True
+        elif remaining_player_count == 1:
+            logging.info("We are down to one player in the hand.")
+            return True
+        else:
+            logging.error("We should never have less than one player remaining.")
+            sys.exit(3)
 
     def check_bet_parity(self):
         """
@@ -1257,12 +1299,16 @@ class Table(object):
         return True
 
     def move_bets_to_pot(self):
-        round_bet = 0
         for player in self.players:
-            round_bet += player.bet
+            self.main_pot.add_equity(player.bet, player)
             player.bet = 0
 
-        self.main_pot.add(round_bet)
+        # round_bet = 0
+        # for player in self.players:
+        #     round_bet += player.bet
+        #     player.bet = 0
+        #
+        # self.main_pot.add(round_bet)
 
     def get_player_action(self, player):
         """
@@ -1301,6 +1347,7 @@ class Table(object):
         self.print_status()
 
         # Check if there is only player in the hand.
+        # TODO: this needs to happen more often
         if self.check_for_one_player():
             logging.debug("There is only one player left.")
             return
@@ -1344,7 +1391,7 @@ class Table(object):
         :return:
         """
         first_better = self.small_blind_player  # UTG player
-        print("first bettor is {}".format(first_better.name))
+        logging.debug("first bettor is {}".format(first_better.name))
         better = first_better
         self.get_player_action(better)
         better = better.next_player
@@ -1373,16 +1420,6 @@ class Table(object):
 
             self.get_player_action(better)
             better = better.next_player
-
-    # def find_best_hand(self, cardlist):  # It might be time to make CardList(object)
-    #
-    #     # Use brute force
-    #     cardset = set(cardlist)
-    #     # for subset in list(itertools.combinations(cardset, 5)):
-    #     # for subset in [c.__str__() for c in itertools.combinations(cardset, 5)]:
-    #     # for subset in [c for c in list(itertools.combinations(cardset, 5))]:  # works
-    #     for subset in list(itertools.combinations(cardset, 5)):
-    #         print("  {}".format(self.get_cardlist_string(list(subset))))
 
     def find_winners(self):
         active_players = [p for p in self.players if not p.has_folded]
@@ -1432,6 +1469,7 @@ class Table(object):
         for busted_player in busted_players:
             # print(type(busted_player))
             print("busted out: {}".format(busted_player.name))
+            self.bust_log[self.game_ctr].append(busted_player.name)
             self.remove_player(busted_player)
 
         # Checking for negative stacks.
@@ -1446,8 +1484,14 @@ class Table(object):
             print("=============================================================")
             print("=============================================================")
             print("")
-            print("We have a winner!!!!")
+            print("After {} games, we have a winner!!!!".format(self.game_ctr))
             print(self.players[0])
+            print("")
+            print("")
+            print("Here's the bust log:")
+            for round in sorted(self.bust_log):
+                print("{:5} {}".format(round, self.bust_log[round]))
+
             sys.exit()
 
     def reset(self):
@@ -1462,7 +1506,7 @@ class Table(object):
         self.betting_round = None
         self.winners = []
         self.game_ctr += 1
-        # time.sleep(1)  # even players need to rest
+        # time.sleep(10)  # even players need to rest
 
 
 class Game(object):
