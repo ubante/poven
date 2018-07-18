@@ -711,7 +711,10 @@ class Player(object):
 
     def __str__(self):
         if self.bet:
-            return "{} {} ${} (${})".format(self.name, self.holecards, self.stack, self.bet)
+            all_in_note = ""
+            if self.is_all_in:
+                all_in_note = " ALL-IN"
+            return "{} {} ${} (${}{})".format(self.name, self.holecards, self.stack, self.bet, all_in_note)
         else:
             return "{} {} ${} ".format(self.name, self.holecards, self.stack)
 
@@ -796,11 +799,13 @@ class Player(object):
             return self.call(table_state)
 
     def check_or_fold(self, table_state):
-        if table_state.get_max_bet() == 0:
+        # if table_state.get_max_bet() == 0:
+        bet_difference = self.bet - table_state.get_max_bet()
+        if bet_difference == 0:
             return self.check(table_state)
-        else:
-            logging.debug("The current max bet is non zero ({}) so folding."
-                          .format(table_state.get_max_bet()))
+        elif bet_difference <= 0:
+            logging.debug("The current max bet ({}) is greater than my current bet ({}) so folding."
+                          .format(table_state.get_max_bet(), self.bet))
             return self.fold()
 
     def all_in(self):
@@ -1296,7 +1301,8 @@ class Table(object):
 
     def check_for_one_player(self):
         remaining_player_count = len(self.players) - self.count_folded_players()
-        if remaining_player_count >= 1:
+        if remaining_player_count > 1:
+            logging.info("There are still {} players so continuing.".format(remaining_player_count))
             return False
         elif remaining_player_count == 1:
             logging.info("We are down to one player in the hand.")
@@ -1364,6 +1370,10 @@ class Table(object):
         better = better.next_player
 
         while not better == first_better:
+            if self.check_for_one_player():
+                logging.debug("There is only one player left - preflop")
+                return
+
             logging.debug("next better is {}".format(better.name))
             self.get_player_action(better)
             better = better.next_player
@@ -1380,7 +1390,7 @@ class Table(object):
         # TODO: seriously
         # TODO: seriously
         if self.check_for_one_player():
-            logging.debug("There is only one player left - preflop")
+            logging.debug("There is only one player left - preflop2")
             return
 
         # Continue the bets until:
@@ -1390,6 +1400,10 @@ class Table(object):
             # print("There are {} folded players".format(self.count_folded_players()))
             # print("There are {} all-in players".format(self.count_all_in_players()))
             # print("There are {} total players ".format(len(self.players)))
+
+            if self.check_for_one_player():
+                logging.debug("There is only one player left - preflop3")
+                return
 
             # Check if everyone is already all in.
             if self.count_all_in_players() + self.count_folded_players() == len(self.players):
@@ -1426,11 +1440,19 @@ class Table(object):
         better = better.next_player
 
         while not better == first_better:
+            if self.check_for_one_player():
+                logging.debug("There is only one player left - {}".format(self.betting_round))
+                return
+
             logging.debug("next better is {}".format(better.name))
             self.get_player_action(better)
             better = better.next_player
 
         while True:
+            if self.check_for_one_player():
+                logging.debug("There is only one player left - {} 2".format(self.betting_round))
+                return
+
             if self.count_all_in_players() + self.count_folded_players() == len(self.players):
                 return
 
@@ -1453,8 +1475,17 @@ class Table(object):
     def pay_winners(self):
         logging.info("Paying out the pots")
 
+        # There is this case that is uncommon but does happen.  If the
+        # small blind player goes all to pay the small blind and the big
+        # blind checks and every one else folds.  Then the small blind
+        # wins, the big blind should get some money back.
+        # https://poker.stackexchange.com/questions/8599/rules-when-blinds-are-all-in
+        # For now, we'll just give all the money to the small blind
+        # player.
+
         # This may be inefficient and different than live poker because
-        # folded players but equivalent to how live pots are paid.
+        # of folded players.  But it is equivalent to how live pots are
+        # paid.
         logging.info(self.main_pot)
         for segment_amount, player_names in self.main_pot.get_segments():
             logging.debug("for the ${} segment, the players are {}".format(segment_amount, player_names))

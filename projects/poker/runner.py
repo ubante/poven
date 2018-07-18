@@ -64,16 +64,16 @@ def main():
     table = Table()
 
     initial_stack = 1000
-    table.add_player(AllInPreFlopPlayer(initial_stack, "Adam", 5))
+    table.add_player(AllInPreFlopPlayer(initial_stack, "Adam", 5))  # All in at 5
     table.add_player(Player(initial_stack, "Bert"))
     table.add_player(CallingStationPlayer(initial_stack, "Cail"))
-    table.add_player(AllInPreFlopPlayer(initial_stack, "Dale", 2))
+    table.add_player(AllInPreFlopPlayer(initial_stack, "Dale", 2))  # deuce
     # player5 = InteractivePlayer(initial_stack, "Eyor")
-    # table.add_player(FoldingPlayer(initial_stack, "Fifi"))
+    table.add_player(FoldingPlayer(initial_stack, "Fifi"))
     # table.add_player(GonzoPlayer(initial_stack, "Gary"))
-    table.add_player(AllInPreFlopPlayer(initial_stack, "Hank", 4))
     table.add_player(PreFlopTripleBbPlayer(initial_stack, "Pete"))
-    table.add_player(AllInPreFlopPlayer(initial_stack, "Trey", 3))
+    table.add_player(AllInPreFlopPlayer(initial_stack, "Quin", 4))  # quads
+    table.add_player(AllInPreFlopPlayer(initial_stack, "Trey", 3))  # treys
 
     table.print_status()
 
@@ -90,7 +90,7 @@ def main():
         table.print_status()
 
         # Bet preflop
-        print("-- This is the preflop bet.")
+        # print("-- This is the preflop bet.")
         table.preflop_bet()
         # print("-- After the preflop bet.")
         # table.print_status()
@@ -113,8 +113,8 @@ def main():
         # Deal the turn
         table.deal_turn()
         table.betting_round = "TURN"
-        print("-- After dealing the turn.")
-        table.print_status()
+        # print("-- After dealing the turn.")
+        # table.print_status()
 
         # Bet the turn
         print("\n-- This is the turn bet.")
@@ -125,8 +125,8 @@ def main():
         # Deal the river
         table.deal_river()
         table.betting_round = "RIVER"
-        print("-- After dealing the river.")
-        table.print_status()
+        # print("-- After dealing the river.")
+        # table.print_status()
 
         # Bet the river
         print("\n-- This is the river bet.")
@@ -305,8 +305,32 @@ def main4():
         print("{} split by {}".format(segment[0], segment[1]))
 
 
+def main5():
+    print("apple {:2d} {:0.4f}".format(1, 62.5640001297))
+    res = ['Irene Adler', 35, 24.798]
+    print('{0[0]:{1}s} {0[1]:{2}d} {0[2]:{3}f}'.format(res, 10, 5, .2))
+    # Irene Adler    35 24.80
+    print('{0[0]:10s} {0[1]:5d} {0[2]:.2f}'.format(res))
+    print('{:{}s} {:{}d} {:{}f}'.format(res[0], 10, res[1], 5, res[2], .2))
+
+    print('{:{}s} {:{}d} {:{}f}'.format("Linda", 10, 25, 5, 12.734, .2))
+    print('{:{}s} {:5d} {:{}f}'.format("Linda", 10, 25, 12.734, .2))
+    print('{:10s} {:5d} {:0.2f}'.format("Linda", 25, 12.734))
+    print('{:10s} {:5d} {:0.2f}'.format("apple", 1, 62.5640001297))
+    print('apple {:5d} {:0.2f}'.format(1, 62.5640001297))
+    print('apple {:2d} {:0.4f}'.format(1, 62.5640001297))
+    print("apple {:2d} {:0.4f}".format(1, 62.5640001297))
+
+    num_of_tournaments = 5
+    elapsed_time = 62.5640001297
+    print("\n{:4d} tournaments took {:0.4f} seconds or {:0.4f}/tournament."
+          .format(num_of_tournaments, elapsed_time,
+                  elapsed_time/num_of_tournaments))
+
+
 if __name__ == "__main__":
-    main()
+    # main()
+    main5()
     # main4()
     # main3()
     # main2()
