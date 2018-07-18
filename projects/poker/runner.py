@@ -1,4 +1,5 @@
-from projects.poker.classes import Player, CallingStationPlayer, InteractivePlayer, FoldingPlayer, GonzoPlayer
+from projects.poker.classes import Player, CallingStationPlayer, InteractivePlayer, FoldingPlayer, GonzoPlayer, \
+    AllInPreFlopPlayer
 from projects.poker.classes import Pot
 from projects.poker.classes import PreFlopTripleBbPlayer
 from projects.poker.classes import Table
@@ -63,22 +64,18 @@ def main():
     table = Table()
 
     initial_stack = 1000
-    # player1 = Player(initial_stack, "Adam")
-    # table.add_player(player1)
-    # player2 = Player(initial_stack, "Bert")
-    # table.add_player(player2)
-    player3 = CallingStationPlayer(initial_stack, "Cail")
-    table.add_player(player3)
-    # player4 = Player(initial_stack, "Dale")
-    # table.add_player(player4)
+    table.add_player(AllInPreFlopPlayer(initial_stack, "Adam", 5))
+    table.add_player(Player(initial_stack, "Bert"))
+    table.add_player(CallingStationPlayer(initial_stack, "Cail"))
+    table.add_player(AllInPreFlopPlayer(initial_stack, "Dale", 2))
     # player5 = InteractivePlayer(initial_stack, "Eyor")
-    # table.add_player(player5)
-    player7 = FoldingPlayer(initial_stack, "Fifi")
-    table.add_player(player7)
-    player8 = GonzoPlayer(initial_stack, "Gary")
-    table.add_player(player8)
-    # table.add_player(PreFlopTripleBbPlayer(initial_stack, "Pete"))
-    # table.print_status()
+    # table.add_player(FoldingPlayer(initial_stack, "Fifi"))
+    # table.add_player(GonzoPlayer(initial_stack, "Gary"))
+    table.add_player(AllInPreFlopPlayer(initial_stack, "Hank", 4))
+    table.add_player(PreFlopTripleBbPlayer(initial_stack, "Pete"))
+    table.add_player(AllInPreFlopPlayer(initial_stack, "Trey", 3))
+
+    table.print_status()
 
     # Start a tournament.
     table.assign_button()
@@ -137,14 +134,18 @@ def main():
         print("-- This is after the river round.")
         table.print_status()
 
-        # Find the winners
-        print("\n-- Finding the winner.")
-        table.find_winners()
+        # For all the different pots, find and pay winners
+        print("\n-- Finding and paying the winners.")
+        table.pay_winners()
+        # sys.exit()
 
-        # Payout
-        table.payout()
-        print("\n-- Before clearing out the busted players.")
-        table.print_status()
+        # # Find the winners
+        # print("\n-- Finding the winner.")
+        # table.find_winners()
+        # # Payout
+        # table.payout()
+        # print("\n-- Before clearing out the busted players.")
+        # table.print_status()
 
         # Remove busted players
         table.remove_busted_players()
@@ -152,12 +153,17 @@ def main():
         table.print_status()
 
         # Check for tournament winner.
-        table.check_tournament_winner()
+        winner = table.check_tournament_winner()
+        if winner:
+            break
 
         # Reset the table
         table.reset()
         print("\n-- After resetting the table.")
         table.print_status()
+
+    print("The tournament winner is: {}".format(winner.name))
+    return winner
 
 
 def main3():
@@ -274,25 +280,34 @@ def main4():
     p1 = Player(1000, "p1")
     p2 = Player(1000, "p2")
     p3 = Player(1000, "p3")
+    p4 = Player(1000, "p4")
+    p5 = Player(1000, "p5")
 
     pot = Pot()
     pot.add_equity(40, p1)
     pot.add_equity(40, p2)
     pot.add_equity(40, p3)
+    pot.add_equity(40, p4)
+    pot.add_equity(40, p5)
 
     pot.add_equity(30, p2)
     pot.add_equity(30, p3)
+    pot.add_equity(30, p4)
+    pot.add_equity(30, p5)
 
-    print("Pot is ${}".format(pot.value))
+    pot.add_equity(100, p4)
+    pot.add_equity(100, p5)
+
+    print(pot)
 
     segments = pot.get_segments()
     for segment in segments:
-        print("{} split by {}".format(segment[0], [p.name for p in segments[1]]))
+        print("{} split by {}".format(segment[0], segment[1]))
 
 
 if __name__ == "__main__":
-    # main()
-    main4()
+    main()
+    # main4()
     # main3()
     # main2()
 

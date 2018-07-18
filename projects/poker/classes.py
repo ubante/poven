@@ -434,6 +434,7 @@ class HoleCards(object):
 
     def slansky_malmuth_score(self):
         # From https://en.wikipedia.org/wiki/Texas_hold_%27em_starting_hands#Sklansky_hand_groups
+        # A lower score is a better hand.
 
         # First look at paired cards.
         if self.cards[0].is_paired(self.cards[1]):
@@ -654,20 +655,40 @@ class Pot(object):
         self.value = 0
         self.equity = defaultdict(int)
 
+    def __str__(self):
+        s = "Pot total: ${}, ".format(self.value)
+        for player_name in sorted(self.equity, key=self.equity.get):
+            s = "{}{}: ${}, ".format(s, player_name, self.equity[player_name])
+
+        return s
+
     def reset(self):
         self.value = 0
+        self.equity = defaultdict(int)
 
     def add_equity(self, amount, player):  # I might be misusing "equity"
         self.equity[player.name] += amount
         self.value += amount
 
     def get_segments(self):
-        segments = []  # list of tuples (segment_total, player_list)
+        segments = []  # list of tuples (segment_amount, player_list)
 
+        previous = 0
+        for equity_value in sorted(set(self.equity.values())):
+            # There's no use for a segment of $0.
+            if equity_value == 0:
+                continue
+
+            player_list = []
+            for player_name in self.equity:
+                if self.equity[player_name] >= equity_value:
+                    player_list.append(player_name)
+            segments.append((equity_value - previous, player_list))
+            previous = equity_value
         return segments
 
-    def split(self, num_players):
-        return self.value / num_players
+    # def split(self, num_players):
+    #     return self.value / num_players
 
 
 class Player(object):
@@ -988,14 +1009,27 @@ class FoldingPlayer(Player):
             return 0
 
 
-class AllInPlayer(Player):
+class AllInPreFlopPlayer(Player):
     """
-    When raising, this player goes all in.  The needed logic is to
-    decide when to raise.
+    If this player gets hole cards equal or better than the given
+    Slanksy-Malmuth score, he will go all in.  Otherwise, he calls
+    or folds.
 
-    When not raising or calling, this player will fold.
+    For the other betting rounds, he check-calls.
     """
-    pass
+
+    def __init__(self, starting_stack, name, sm_threshold):
+        super(AllInPreFlopPlayer, self).__init__(starting_stack, name)
+        self.sm_threshold = sm_threshold
+
+    def choose_action_preflop(self, table_state):
+        sm_score = self.holecards.slansky_malmuth_score()
+        if sm_score <= self.sm_threshold:
+            logging.info("{} has a good hand [{}] - going all in".format(self.name, sm_score))
+            self.all_in()
+        else:
+            logging.info("{} has a poop hand [{}] - check/folding".format(self.name, sm_score))
+            self.check_or_fold(table_state)
 
 
 class PreFlopTripleBbPlayer(Player):
@@ -1062,7 +1096,8 @@ class Table(object):
         self.small_blind_player = None
         self.big_blind_player = None
         self.betting_round = None
-        self.winners = []
+        # self.winners = []
+        # self.nothing = []
 
     def add_player(self, player):
         """
@@ -1142,11 +1177,15 @@ class Table(object):
         return s
 
     def state_without_cards(self):
+        """
+        This should be displayed when using an InteractivePlayer so they
+        can't easily see what the hole cards are for other players.
+
+        :return:
+        """
         s = "{} players / {} folded / {} all-in / game #{}\n" \
             .format(len(self.players), self.count_folded_players(), self.count_all_in_players(), self.game_ctr)
-        #
-        # s = "{} players / {} folded / {} all-in \n" \
-        #     .format(len(self.players), self.count_folded_players(), self.count_all_in_players())
+
         for player in self.players:
             s = "{}{}\n".format(s, player.state_without_cards())
         s = "{}{}\n".format(s, self.deck)
@@ -1202,8 +1241,6 @@ class Table(object):
             logging.debug("Assinging '{}' to be the button player.".format(name))
 
         self.assign_blind_players()
-        # self.small_blind_player = self.button.next_player
-        # self.big_blind_player = self.small_blind_player.next_player
 
     def define_blinds(self, sb):
         """
@@ -1242,20 +1279,17 @@ class Table(object):
         for _ in range(0, 3):
             card = self.deck.get_card()
             self.community.append(card)
-            # self.community.append(self.deck.get_card())
             self.communityset.add(card)
 
     def deal_turn(self):
         card = self.deck.get_card()
         self.community.append(card)
         self.communityset.add(card)
-        # self.community.append(self.deck.get_card())
 
     def deal_river(self):
         card = self.deck.get_card()
         self.community.append(card)
         self.communityset.add(card)
-        # self.community.append(self.deck.get_card())
 
     def print_status(self):
         print(self.__str__())
@@ -1303,13 +1337,6 @@ class Table(object):
             self.main_pot.add_equity(player.bet, player)
             player.bet = 0
 
-        # round_bet = 0
-        # for player in self.players:
-        #     round_bet += player.bet
-        #     player.bet = 0
-        #
-        # self.main_pot.add(round_bet)
-
     def get_player_action(self, player):
         """
         We will eventually import Player classes so there are some
@@ -1348,8 +1375,12 @@ class Table(object):
 
         # Check if there is only player in the hand.
         # TODO: this needs to happen more often
+        # TODO: seriously
+        # TODO: seriously
+        # TODO: seriously
+        # TODO: seriously
         if self.check_for_one_player():
-            logging.debug("There is only one player left.")
+            logging.debug("There is only one player left - preflop")
             return
 
         # Continue the bets until:
@@ -1366,8 +1397,6 @@ class Table(object):
                 return
 
             logging.info("Checking on {}".format(better.name))
-            # time.sleep(1)
-
             if better.has_folded:
                 better = better.next_player
                 continue
@@ -1421,11 +1450,37 @@ class Table(object):
             self.get_player_action(better)
             better = better.next_player
 
-    def find_winners(self):
-        active_players = [p for p in self.players if not p.has_folded]
+    def pay_winners(self):
+        logging.info("Paying out the pots")
+
+        # This may be inefficient and different than live poker because
+        # folded players but equivalent to how live pots are paid.
+        logging.info(self.main_pot)
+        for segment_amount, player_names in self.main_pot.get_segments():
+            logging.debug("for the ${} segment, the players are {}".format(segment_amount, player_names))
+
+            # segment_amount is the amount each player put in for that
+            # segment. segment_total is the amount of money in that
+            # segment.
+            segment_total = segment_amount * len(player_names)
+            self.pay_winners_for_segment(segment_total, player_names)
+
+    def pay_winners_for_segment(self, segment_total, player_names_in_pot):
+        # active_players = [p for p in self.players if not p.has_folded]
+
+        active_players = []
+        for player in self.players:
+            # You can't win if you don't play.
+            if player.has_folded:
+                continue
+            # You can't win if you don't pay.
+            if player.name not in player_names_in_pot:
+                continue
+
+            active_players.append(player)
 
         print("These players are still active:")
-        winners = []
+        winners = []  # will be a list of tuples
         for ap in active_players:
             print("- {}".format(ap))
             combined_cardset = CardSet()
@@ -1449,20 +1504,14 @@ class Table(object):
                 winners = [(ap, combined_cardset, evaled)]
 
         print("\nThe winners are:")
+        segment_cut = segment_total / len(winners)
         for winner in winners:
             print("{:<65} {}".format(winner[2], winner[0].name))
-            self.winners.append(winner[0])
 
-    def payout(self):
-        num_winners = len(self.winners)
-
-        # TODO: sidepots
-        payout_per_player = self.main_pot.split(num_winners)
-        for winner in self.winners:
-            print("Paying out {}".format(winner.name))
-            print("  current stack: {} + payout: {} = ".format(winner.stack, payout_per_player))
-            winner.stack += payout_per_player
-            print("  stack after payout: {}".format(winner.stack))
+            print("Paying {} to {}".format(segment_cut, winner[0].name))
+            print("  current stack: {} + payout: {} = ".format(winner[0].stack, segment_cut))
+            winner[0].stack += segment_cut
+            print("  stack after payout: {}".format(winner[0].stack))
 
     def remove_busted_players(self):
         busted_players = [p for p in self.players if p.stack == 0]
@@ -1489,10 +1538,13 @@ class Table(object):
             print("")
             print("")
             print("Here's the bust log:")
-            for round in sorted(self.bust_log):
-                print("{:5} {}".format(round, self.bust_log[round]))
+            for game in sorted(self.bust_log):
+                print("{:5} {}".format(game, self.bust_log[game]))
 
-            sys.exit()
+            return self.players[0]
+            # sys.exit()
+
+        return None
 
     def reset(self):
         for player in self.players:
@@ -1504,9 +1556,10 @@ class Table(object):
         self.community = []  # maybe a list is enough - nope
         self.communityset = CardSet()
         self.betting_round = None
-        self.winners = []
+        self.button = self.button.next_player
+        # self.winners = []
         self.game_ctr += 1
-        # time.sleep(10)  # even players need to rest
+        # time.sleep(3)  # even players need to rest
 
 
 class Game(object):
