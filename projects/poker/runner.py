@@ -50,14 +50,14 @@ def main():
     args = parser.parse_args()
 
     # For IDE work, set logging level here:
-    args.verbose = 2  # This is DEBUG level.
+    # args.verbose = 2  # This is DEBUG level.
     # args.verbose = 1  # This is INFO level.
 
     # INFO is for interesting things.
     # DEBUG is what happens to interesting things after I lose interest.
     set_logger(args.verbose)
-    logging.debug("Here we go.")
-    logging.info("Here we go informationally.")
+    # logging.debug("Here we go.")
+    # logging.info("Here we go informationally.")
     # logging.warning("This is a fake warning to test logging level.")
 
     # Business logic below.
@@ -73,6 +73,7 @@ def main():
     # table.add_player(GonzoPlayer(initial_stack, "Gary"))
     table.add_player(PreFlopTripleBbPlayer(initial_stack, "Pete"))
     table.add_player(AllInPreFlopPlayer(initial_stack, "Quin", 4))  # quads
+    table.add_player(AllInPreFlopPlayer(initial_stack, "Sven", 7))  # seven
     table.add_player(AllInPreFlopPlayer(initial_stack, "Trey", 3))  # treys
 
     table.print_status()
@@ -80,10 +81,10 @@ def main():
     # Start a tournament.
     table.assign_button()
     # table.assign_button("Dale")
+    table.define_blinds(25)
 
     while True:
         table.betting_round = "PREFLOP"
-        table.define_blinds(25)
         table.post_blinds()
         table.deal_hole_cards()
         print("-- Hole cards dealt.")
@@ -162,7 +163,8 @@ def main():
         print("\n-- After resetting the table.")
         table.print_status()
 
-    print("The tournament winner is: {}".format(winner.name))
+    print("       '{}' is the tournament winner".format(winner.name))
+    # print("The tournament winner is: {}".format(winner.name))
     return winner
 
 

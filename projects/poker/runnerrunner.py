@@ -3,6 +3,8 @@ This will run many tournaments to see which Player is the most
 successful.
 """
 
+from datetime import datetime
+
 import logging
 import sys
 import time
@@ -14,8 +16,8 @@ from runner import main as single_tournament
 
 def main():
     start_time = time.time()
-    num_of_tournaments = 1  # just a random number but 50 seems significant
-    # num_of_tournaments = 1000  # just a random number but 50 seems significant
+    # num_of_tournaments = 2
+    num_of_tournaments = 1000  # just a random number but 1000 seems significant
     bracelets = defaultdict(int)
     for i in range(1, num_of_tournaments+1):
         print("...........................................................")
@@ -45,7 +47,7 @@ def main():
     elapsed_time = stop_time - start_time
     print("\n{:4d} tournaments took {:0.4f} seconds or {:0.4f}/tournament."
           .format(num_of_tournaments, elapsed_time, elapsed_time/num_of_tournaments))
-    print("Start time was {}".format(start_time))
+    print("End time is {}".format(str(datetime.now())))
 
 
 if __name__ == "__main__":
@@ -60,6 +62,60 @@ if __name__ == "__main__":
 """
 ...........................................................
 Bracelets:
+160 Dale
+55 Pete
+42 Cail
+51 Bert
+201 Trey
+120 Sven
+164 Adam
+207 Quin
+
+1000 tournaments took 1156.4080 seconds or 1.1564/tournament.
+End time is 2018-07-19 00:47:00.490000
+
+...........................................................
+Bracelets:
+167 Dale
+30 Bert
+178 Quin
+201 Trey
+151 Sven
+169 Adam
+76 Pete
+28 Cail
+
+1000 tournaments took 1147.7600 seconds or 1.1478/tournament.
+End time is 2018-07-18 23:17:29.408000
+
+...........................................................
+Bracelets:
+152 Dale
+91 Pete
+39 Cail
+44 Bert
+196 Trey
+135 Sven
+159 Adam
+184 Quin
+
+1000 tournaments took 1134.0650 seconds or 1.1341/tournament.
+End time is 2018-07-18 22:05:36.357000
+
+...........................................................
+Bracelets:
+92 Pete
+58 Bert
+230 Quin
+152 Dale
+233 Trey
+186 Adam
+49 Cail
+
+1000 tournaments took 1179.3810 seconds or 1.1794/tournament.
+End time is 2018-07-18 21:44:54.624000
+...........................................................
+Bracelets:
 173 Dale
 78 Pete
 218 Quin
@@ -70,70 +126,6 @@ Bracelets:
 
 1000 tournaments took 1260.1020 seconds or 1.2601/tournament.
 
-...........................................................
-Current bracelets:
- 8 Dale
- 2 Bert
-13 Quin
- 7 Trey
-16 Adam
- 1 Pete
- 3 Cail
-
-50 tournaments took 62.5640001297 seconds or 1.25128000259/tournament.
-...........................................................
-Current bracelets:
- 3 Dale
- 3 Bert
-18 Quin
- 9 Trey
-10 Adam
- 5 Pete
- 2 Cail
-
-50 tournaments took 63.5380001068 seconds or 1.27076000214/tournament.
-...........................................................
-Current bracelets:
- 7 Dale
- 6 Pete
- 2 Cail
- 5 Bert
-13 Trey
- 8 Adam
- 9 Quin
-...........................................................
-Current bracelets:
- 9 Pete
- 7 Dale
- 4 Quin
- 7 Bert
- 7 Trey
-13 Adam
- 3 Cail
-
-  50 tournaments took 54.8770 seconds or 1.0975/tournament.
-...........................................................
-Current bracelets:
- 9 Dale
- 6 Pete
-15 Quin
- 3 Bert
- 6 Trey
- 8 Adam
- 3 Cail
-
-  50 tournaments took 45.5020 seconds or 0.9100/tournament.
-...........................................................
-Current bracelets:
- 5 Pete
- 4 Bert
- 2 Cail
-10 Dale
-10 Trey
- 9 Adam
-10 Quin
-
-  50 tournaments took 65.3540 seconds or 1.3071/tournament.
 ...........................................................
 Current bracelets:
 40 Pete

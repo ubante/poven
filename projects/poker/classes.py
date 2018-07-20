@@ -7,7 +7,6 @@ from random import shuffle
 import itertools
 import logging
 import sys
-import time
 
 """
 This appears to be the rules:
