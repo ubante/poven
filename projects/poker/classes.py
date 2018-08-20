@@ -174,6 +174,7 @@ class Evaluation(object):
         return True
 
     def is_straight(self):
+        #TODO: this needs to look for a wheel straight, ie A2345
         ranks = self.cardset.get_reverse_ordered_numeric_ranks()
         previous = None
         for rank in ranks:
@@ -685,9 +686,6 @@ class Pot(object):
             segments.append((equity_value - previous, player_list))
             previous = equity_value
         return segments
-
-    # def split(self, num_players):
-    #     return self.value / num_players
 
 
 class Player(object):
