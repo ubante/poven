@@ -55,7 +55,7 @@ Examples:
                                      epilog=epilog,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("-n", help="Number of sides of the die or number of distinct coupons", type=int)
-    parser.add_argument("-p", "--percent", help="The percent we want", type=int, default=80)
+    parser.add_argument("-p", "--percent", help="The percent we want", type=float, default=80)
     parser.add_argument("-i", "--iteration", help="How precise do you want to be?", type=int, default=100)
     parser.add_argument("-q", "--quiet", help="Suppress some output", action="store_true")
     parser.add_argument("-v", "--verbose", help="Print info/debug", action="count")
@@ -137,4 +137,91 @@ if __name__ == "__main__":
 The best rollset was 73, the median rollset was 172, the worst rollset was 585
 n log(n) = 156.982123968
 99 percent of the 20000 rollsets were at or below 344
+
+(poven) 2141-laptop:coupon_collector$ time ./runner.py -n 42 -i 100000 -p99.99 -q
+The best rollset was 72, the median rollset was 173, the worst rollset was 635
+n log(n) = 156.982123968
+99.99 percent of the 100000 rollsets were at or below 518
+
+real	0m38.594s
+user	0m38.472s
+sys	0m0.071s
+
+(poven) 2147-laptop:coupon_collector$ ./runner.py -n 6 -i 20 -p90
+-- Iteration 1/20 --
+It took 9 rolls to get all 6 sides.
+-- Iteration 2/20 --
+It took 13 rolls to get all 6 sides.
+-- Iteration 3/20 --
+It took 13 rolls to get all 6 sides.
+-- Iteration 4/20 --
+It took 16 rolls to get all 6 sides.
+-- Iteration 5/20 --
+It took 12 rolls to get all 6 sides.
+-- Iteration 6/20 --
+It took 10 rolls to get all 6 sides.
+-- Iteration 7/20 --
+It took 12 rolls to get all 6 sides.
+-- Iteration 8/20 --
+It took 15 rolls to get all 6 sides.
+-- Iteration 9/20 --
+It took 16 rolls to get all 6 sides.
+-- Iteration 10/20 --
+It took 17 rolls to get all 6 sides.
+-- Iteration 11/20 --
+It took 13 rolls to get all 6 sides.
+-- Iteration 12/20 --
+It took 8 rolls to get all 6 sides.
+-- Iteration 13/20 --
+It took 12 rolls to get all 6 sides.
+-- Iteration 14/20 --
+It took 18 rolls to get all 6 sides.
+-- Iteration 15/20 --
+It took 12 rolls to get all 6 sides.
+-- Iteration 16/20 --
+It took 12 rolls to get all 6 sides.
+-- Iteration 17/20 --
+It took 20 rolls to get all 6 sides.
+-- Iteration 18/20 --
+It took 27 rolls to get all 6 sides.
+-- Iteration 19/20 --
+It took 13 rolls to get all 6 sides.
+-- Iteration 20/20 --
+It took 30 rolls to get all 6 sides.
+Tally:
+0: 0
+1: 0
+2: 0
+3: 0
+4: 0
+5: 0
+6: 0
+7: 0
+8: 1
+9: 1
+10: 1
+11: 0
+12: 5
+13: 4
+14: 0
+15: 1
+16: 2
+17: 1
+18: 1
+19: 0
+20: 1
+21: 0
+22: 0
+23: 0
+24: 0
+25: 0
+26: 0
+27: 1
+28: 0
+29: 0
+30: 1
+The best rollset was 8, the median rollset was 13, the worst rollset was 30
+n log(n) = 10.7505568154
+90.0 percent of the 20 rollsets were at or below 27
+
 """
