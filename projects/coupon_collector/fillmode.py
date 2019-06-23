@@ -44,10 +44,7 @@ def set_logger(verbose_level, logfilename=None):
 
 def dict_to_list(rollcount):
     newlist = []
-    # print(rollcount)
-    # print(rollcount[1])
     for i in range(0, len(rollcount)):
-        # print("loop {}".format(i))
         newlist.append(rollcount[i+1])
 
     return newlist
@@ -90,7 +87,8 @@ Examples:
         parser.print_usage()
         parser.exit()
 
-    logging.info("N: {}, I: {}, P: {}".format(args.n, args.iteration, args.percent))
+    logging.info("N: {}, I: {}, P: {}, F: {}"
+                 .format(args.n, args.iteration, args.percent, args.f))
 
     tally = defaultdict(int)
     bestroll = sys.maxint
@@ -107,10 +105,11 @@ Examples:
             rollcounter += 1
             roll = randint(1, args.n)
             logging.debug("rolled a {}".format(roll))
+            found[roll] += 1
             if found[roll] > args.f:
                 continue
 
-            found[roll] += 1
+            # found[roll] += 1
             if found[roll] == args.f:
                 foundcount += 1
 
@@ -129,10 +128,6 @@ Examples:
         with open(args.csv, "w") as csvfile:
             writer = csv.writer(csvfile)
             writer.writerows(csvdata)
-
-
-
-    sys.exit(3)
 
     if not args.quiet:
         print("Tally:")
@@ -155,10 +150,12 @@ Examples:
             # if percentsum > args.iteration / 2:
                 percentroll = i
 
-    print("To hit each possibility {} times, the best rollset was {}, the median was {}, the worst was {}"
-          .format(args.f, bestroll, medianroll, worstroll))
+    print("To hit each of the {} possibilities {} times, the best rollset was {}, the median was {}, the worst was {}"
+          .format(args.n, args.f, bestroll, medianroll, worstroll))
     # print("n log(n) = {}".format(args.n * math.log(args.n)))
     print("{} percent of the {} rollsets were at or below {}".format(args.percent, args.iteration, percentroll))
+    print("To do the above percentage in a day, we'd have to draw a coupon every {} seconds."
+          .format(60*60*24/percentroll))
 
     logging.info("{} {} {} {}".format(args.iteration, args.percent, args.iteration*100,
                                      args.iteration*100/args.percent))
@@ -258,5 +255,25 @@ Tally:
 The best rollset was 8, the median rollset was 13, the worst rollset was 30
 n log(n) = 10.7505568154
 90.0 percent of the 20 rollsets were at or below 27
+
+C:/fillmode.py -n 42 -i1000 -p99 -f47 -c abcd.csv -q
+To hit each of the 42 possibilities 47 times, the best rollset was 2322, the median was 2636, the worst was 3316
+99.0 percent of the 1000 rollsets were at or below 3083
+To do the above percentage in a day, we'd have to draw a coupon every 28 seconds.
+
+C:/fillmode.py -n 168 -i1000 -p99 -f47 -c abcd.csv -q
+To hit each of the 168 possibilities 47 times, the best rollset was 10115, the median was 11254, the worst was 13739
+99.0 percent of the 1000 rollsets were at or below 12930
+To do the above percentage in a day, we'd have to draw a coupon every 6 seconds.
+
+C:/fillmode.py -n 168 -i100000 -p99 -f47 -c abcd.csv -q
+To hit each of the 168 possibilities 47 times, the best rollset was 9801, the median was 11274, the worst was 15589
+99.0 percent of the 100000 rollsets were at or below 13111
+To do the above percentage in a day, we'd have to draw a coupon every 6 seconds.
+
+C:/fillmode.py -n 168 -i100000 -p99.99 -f47 -c abcd.csv -q
+To hit each of the 168 possibilities 47 times, the best rollset was 9781, the median was 11273, the worst was 16396
+99.99 percent of the 100000 rollsets were at or below 14771
+To do the above percentage in a day, we'd have to draw a coupon every 5 seconds.
 
 """
