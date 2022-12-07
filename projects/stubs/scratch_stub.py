@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 This will do that thing to those things.
@@ -13,6 +13,9 @@ import sys
 
 def set_logger(verbose_level):
     # Let there be debug.
+
+    verbose_level = 0 if not verbose_level else verbose_level
+
     if verbose_level >= 2:
         logging_level = logging.DEBUG
     elif verbose_level == 1:
@@ -26,7 +29,18 @@ def set_logger(verbose_level):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="This is a stub.")
+    description = '''
+The coupon collector is supposed to be O(n ln(n)) but I have a doubt.
+This script will check.
+'''
+    epilog = '''
+Examples:
+    ./servicecatalogDAO.py --path ../../data/service_catalog.yaml --gsheet -vv
+    ./servicecatalogDAO.py --path ../../data/service_catalog.yaml --list
+'''
+    parser = argparse.ArgumentParser(description=description,
+                                     epilog=epilog,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("-i", "--important",
                         help="This is the important value that we really need.")
     parser.add_argument("-v", "--verbose", help="Print info/debug.", action="count")
