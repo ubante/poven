@@ -75,18 +75,27 @@ def make_diagram(a_set, b_set, c_set):
 
     # The labels will be the size of the regions.  With three groups,
     # there will be seven regions.
-    v.get_label_by_id('100').set_text(len(a_only_set))
-    v.get_label_by_id('010').set_text(len(b_only_set))
-    v.get_label_by_id('110').set_text(len(ab_set))
-    v.get_label_by_id('001').set_text(len(c_only_set))
-    v.get_label_by_id('101').set_text(len(ac_set))
-    v.get_label_by_id('011').set_text(len(bc_set))
-    v.get_label_by_id('111').set_text(len(abc_set))
+    region_map = {'100': a_only_set,
+                  '010': b_only_set,
+                  '001': c_only_set,
+                  '110': ab_set,
+                  '101': ac_set,
+                  '011': bc_set,
+                  '111': abc_set
+    }
+
+    # venn3 has problems when a region has size 0, so leave it empty.
+    for region in region_map:
+        if v.get_label_by_id(region):
+            v.get_label_by_id(region).set_text(len(region_map[region]))
 
     # Make some cosmetic settings.
     venn3_circles(subsets=s, linestyle='dotted')
 
     # Create the window with the graph
+    print("\nThe diagram should have popped up.  Since it is part of this python process,",
+          "blocking until you close the pop-up or CTRL-C.")
+
     plt.show()
 
     # Write the results out to files.  Should I wrap all of this into an
