@@ -18,6 +18,24 @@ class Rarity(Enum):
     LEGENDARY = 4
 
 
+class Dust(object):
+    """
+    Ref: https://hearthstone.fandom.com/wiki/Crafting
+    """
+    @staticmethod
+    def get_disenchant_values() -> dict[Rarity, dict]:
+        return {Rarity.LEGENDARY: {True: 1600, False: 400},
+                Rarity.EPIC: {True: 400, False: 100},
+                Rarity.RARE: {True: 100, False: 20},
+                Rarity.COMMON: {True: 50, False: 5}}
+
+    @staticmethod
+    def get_craft_values() -> dict[Rarity, dict]:
+        return {Rarity.LEGENDARY: {True: 3200, False: 1600},
+                Rarity.EPIC: {True: 1600, False: 400},
+                Rarity.RARE: {True: 800, False: 100},
+                Rarity.COMMON: {True: 400, False: 40}}
+
 class Card(object):
     """
     You know, cards.
@@ -26,10 +44,17 @@ class Card(object):
         self.name: str = name
         self.index: int = index
         self.rarity: Rarity = rarity
-        self.dust_value: int = 0
+        self.golden: bool = False
+        self.diamond: bool = False
+        self.signature: bool = False
 
     def __str__(self):
         return f"{self.name}, {self.index}, {self.rarity}"
+
+    def dust_value(self):
+        dust = Dust.get_disenchant_values()
+
+        return dust[self.rarity][self.golden]
 
 
 class Pack(object):
@@ -92,6 +117,8 @@ class Player(object):
                            Rarity.LEGENDARY:0}
 
     def open_pack(self):
+        # It would be interesting to record the last pack opened to see if it contained a legendary
+        # when we get a fully complete collection.  LATER
         pack = Store.buy_pack(self)
         self.pack_count += 1
         logging.debug(f"{pack.get_rarities()}")
@@ -108,11 +135,15 @@ class Collection(object):
                         Rarity.RARE: defaultdict(int),
                         Rarity.EPIC: defaultdict(int),
                         Rarity.LEGENDARY: defaultdict(int)}
+        self.extra_dust_value = 0
+        self.can_craft_missing_cards = False
+
         Collection.initialize(self.raptor1,
                               RAPTOR1_COUNT_COMMON,
                               RAPTOR1_COUNT_RARE,
                               RAPTOR1_COUNT_EPIC,
                               RAPTOR1_COUNT_LEGENDARY)
+
 
     @staticmethod
     def initialize(hs_set: dict, common: int, rare: int,
@@ -138,7 +169,18 @@ class Collection(object):
     def add(self, card: Card):
         self.raptor1[card.rarity][card.index] += 1
 
-    def is_complete(self, rarity: Rarity) -> bool:
+        # Update the dust potential of extras.
+        if (card.rarity == Rarity.LEGENDARY and self.raptor1[card.rarity][card.index] > 1) or \
+                self.raptor1[card.rarity][card.index] > 2:
+            self.extra_dust_value += card.dust_value()
+
+            # The below is expensive but more readable than having another dictionary to track
+            # missing cards.
+            if self.extra_dust_value >= self.find_missing_cards_cost():
+                self.can_craft_missing_cards = True
+            return
+
+    def is_rarity_complete(self, rarity: Rarity) -> bool:
         """
         Returns true if the collection contains at least a pair of each card
         at the given rarity.
@@ -164,7 +206,7 @@ class Collection(object):
         :return:
         """
         for r in Rarity:
-            if not self.is_complete(r):
+            if not self.is_rarity_complete(r):
                 return False
 
         return True
@@ -206,6 +248,24 @@ class Collection(object):
                     print()
             print()
 
+    def compact_display(self):
+        self.compact_display_line(Rarity.COMMON)
+        self.compact_display_line(Rarity.RARE)
+        self.compact_display_line(Rarity.EPIC)
+        self.compact_display_line(Rarity.LEGENDARY)
+
+    def compact_display_line(self, rarity):
+        print(f"{rarity.name:>9}:", end="")
+        for ind in self.raptor1[rarity]:
+            match self.raptor1[rarity][ind]:
+                case 0:
+                    print(".", end="")
+                case 1:
+                    print("_", end="")
+                case _:
+                    print("-", end="")
+        print()
+
     def print_stats(self):
         all_count = 0
         for rarity in Rarity:
@@ -241,24 +301,45 @@ class Collection(object):
             print(f"{rarity.name:>12}: {rarity_count:>3}/{out_of:<3} "
                   f"{percentage}% {total_rarity_count} cards")
         print(f"Collection has {all_count} cards.")
+        print(f"The dust value of extra cards: {self.extra_dust_value}")
+        print(f"The dust cost to craft missing cards: {self.find_missing_cards_cost()}")
 
-    def compact_display(self):
-        self.compact_display_line(Rarity.COMMON)
-        self.compact_display_line(Rarity.RARE)
-        self.compact_display_line(Rarity.EPIC)
-        self.compact_display_line(Rarity.LEGENDARY)
+    def find_missing_cards_by_rarity(self) -> defaultdict[Rarity, int]:
+        """
+        It might be more efficient to use counters but this is easier to
+        understand.
+        :return:
+        """
+        missing = defaultdict(int)
 
-    def compact_display_line(self, rarity):
-        print(f"{rarity:>16}:", end="")
-        for ind in self.raptor1[rarity]:
-            match self.raptor1[rarity][ind]:
-                case 0:
-                    print(".", end="")
-                case 1:
-                    print("_", end="")
-                case _:
-                    print("-", end="")
-        print()
+        for rarity in Rarity:
+            rarity_slice = self.raptor1[rarity]
+            for index in rarity_slice.keys():
+                if rarity == Rarity.LEGENDARY:
+                    if self.raptor1[rarity][index] == 0:
+                        missing[rarity] += 1
+                    continue
+
+                if self.raptor1[rarity][index] == 0:
+                    missing[rarity] += 2
+                elif self.raptor1[rarity][index] == 1:
+                    missing[rarity] += 1
+
+        return missing
+
+    def find_missing_cards_cost(self) -> int:
+        """
+        This will look at the collection's missing cards and tally their dust value.
+        :return:
+        """
+        cost = 0
+        missing = self.find_missing_cards_by_rarity()
+        dust = Dust.get_craft_values()
+        for rarity in missing.keys():
+            cost += missing[rarity] * dust[rarity][False]
+
+        return cost
+
 
 class Store(object):
     @staticmethod
@@ -342,7 +423,6 @@ class Store(object):
         random_card_index = available_indices[rnd - 1]
 
         return Card("random", random_card_index, rarity)
-
 
 
 

@@ -28,7 +28,7 @@ I can't find reliable drop rates for rare cards so will go with 50% for now.
 
 # Questions
 
-1. How many packs are needed to get all <epic cards in the first expansion of a new Hearthstone year?
+1. How many packs are needed to get all <=epic cards in the first expansion of a new Hearthstone year?
    1. ref https://hearthstone.blizzard.com/en-us/expansions-adventures/
 2. Will I ever know it's my birthday?
    1. ref https://www.youtube.com/watch?v=y8OnoxKotPQ
