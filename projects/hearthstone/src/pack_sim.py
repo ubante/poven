@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
 """
-This will simulate opening packs until I get all commons, rares, and epics.
+This will simulate opening packs until I get two of each common, rare, and
+epic cards.
 """
 import argparse
 import logging
 import sys
+
+from projects.hearthstone.src.common import Collection, Card, Player, Store, Rarity
 
 
 def set_logger(verbose_level):
@@ -25,11 +28,25 @@ def set_logger(verbose_level):
                         format='%(levelname)s - %(message)s')
 
 
-def run_sim():
-    # me = Player()
-    pass
+def run_sim() -> int:
+    me = Player("Moi")
+    me.collection.display()
 
-    
+    pack = Store.buy_pack(me)
+
+    print(me.collection.is_solid())
+
+    return me.pack_count
+
+
+def scratch():
+    col = Collection()
+    col.display()
+    col.add(Card.random())
+    col.display()
+    col.compact_display()
+
+
 def main():
     description = '''
 This will simulate opening packs until I get all commons, rares, and epics.
@@ -50,8 +67,15 @@ Examples:
     set_logger(args.verbose)
     logging.debug("Here we go.")
 
-    run_sim()
+    count = run_sim()
+    print(f"It took {count} packs to get a pair of all non-legendaries. ")
 
+    scratch()
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
