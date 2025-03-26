@@ -30,5 +30,20 @@ I can't find reliable drop rates for rare cards so will go with 50% for now.
 
 1. How many packs are needed to get all <=epic cards in the first expansion of a new Hearthstone year?
    1. ref https://hearthstone.blizzard.com/en-us/expansions-adventures/
+   2. According to [pack_sim.py](https://github.com/ubante/poven/blob/d9c47081988d7294d4fedee5b94a916fcd2c58e6/projects/hearthstone/src/pack_sim.py#L116), it takes 281 packs to get all <=epic cards.  But if you consider the dust from duplicates, you can have a complete collection in 269 packs.
 2. Will I ever know it's my birthday?
    1. ref https://www.youtube.com/watch?v=y8OnoxKotPQ
+  
+# Observations
+
+For the expansion that launched today, I opened 80 packs and got:
+
+| Rarity    | Total Count | Just Goldens |
+|-----------|-------------|--------------|
+| Legendary | 5   | 1 |
+| Epic      | 22  | 1 |
+| Rare      | 97  | 3 |
+| Common    | 276 | 6 |
+
+I got all the commons, as expected.
+
