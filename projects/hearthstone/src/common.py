@@ -18,7 +18,7 @@ class Rarity(Enum):
     LEGENDARY = 4
 
 
-class Dust(object):
+class Dust:
     """
     Ref: https://hearthstone.fandom.com/wiki/Crafting
     """
@@ -36,7 +36,7 @@ class Dust(object):
                 Rarity.RARE: {True: 800, False: 100},
                 Rarity.COMMON: {True: 400, False: 40}}
 
-class Card(object):
+class Card:
     """
     You know, cards.
     """
@@ -57,15 +57,7 @@ class Card(object):
         return dust[self.rarity][self.golden]
 
 
-class Pack(object):
-    """
-    These are the things you earn via rewards or buy via dollars.  The contents
-    depend on player collection.  That is, packs will not contain a third copy
-    of a card until the player has a complete set of that card's rarity.
-
-    I'll have to make some assumptions since the logic isn't public.
-    """
-
+class CardSet:
     def __init__(self):
         self.cards: list[Card] = []
 
@@ -74,6 +66,40 @@ class Pack(object):
 
     def size(self) -> int:
         return len(self.cards)
+
+    def shuffle(self):
+        random.shuffle(self.cards)
+
+    def get(self) -> Card:
+        return self.cards.pop()
+
+    def contains(self, index: int) -> bool:
+        for card in self.cards:
+            if card.index == index:
+                return True
+
+        return False
+
+
+class Deck(CardSet):
+    """
+
+    """
+    def __init__(self):
+        super().__init__()
+
+
+
+class Pack(CardSet):
+    """
+    These are the things you earn via rewards or buy via dollars.  The contents
+    depend on player collection.  That is, packs will not contain a third copy
+    of a card until the player has a complete set of that card's rarity.
+
+    I'll have to make some assumptions since the logic isn't public.
+    """
+    def __init__(self):
+        super().__init__()
 
     def open(self) -> list[Card]:
         return self.cards
@@ -101,7 +127,7 @@ class Pack(object):
         return rarities
 
 
-class Player(object):
+class Player:
     """
     Me
 
@@ -126,7 +152,7 @@ class Player(object):
             self.collection.add(card)
 
 
-class Collection(object):
+class Collection:
     """
     Inspired by https://hsreplay.net/collection/mine/
     """
@@ -341,7 +367,7 @@ class Collection(object):
         return cost
 
 
-class Store(object):
+class Store:
     @staticmethod
     def buy_pack(player: Player) -> Pack:
         pack = Pack()

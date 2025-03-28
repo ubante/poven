@@ -14,6 +14,22 @@ class TestPlayer(TestCase):
         pass
 
 
+class TestCardSet(TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+
+class TestDeck(TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+
 class TestCollection(TestCase):
     def setUp(self):
         self.col = Collection()
